@@ -37,7 +37,7 @@ function getData(method, url, proxy) {
 		request[method](options, (err, res) => {
 			if (err) return reject(err);
 			if (res.statusCode != 200) {
-				return reject(new Error(`[ERROR] Response code: ${res.statusCode}. Body: ${res.body}`));
+				return reject(new Error(`Response code: ${res.statusCode}. Body: ${res.body}`));
 			}
 			resolve(res);
 		});
@@ -47,7 +47,7 @@ function getData(method, url, proxy) {
 function getURI(baseurl, uri) {
 	const httpURI = /^https{0,1}:/.test(uri);
 	if (!baseurl && !httpURI) {
-		throw new Error('no base and not http uri');
+		throw new Error('No base and not http(s) uri');
 	} else if (httpURI) {
 		return uri;
 	}
@@ -58,8 +58,11 @@ async function dlparts(m3u8json, fn, baseurl, proxy) {
 	let keys = {}
 	// delete file if exists
 	if (fs.existsSync(`${fn}.ts`)) {
+		console.log(`[INFO] ${fn}.ts already exists! Deleting...`);
 		fs.unlinkSync(`${fn}.ts`);
 	}
+	// show target filename
+	console.log(`[INFO] Saving stream to ${fn}.ts`);
 	// dl parts
 	const pcount = 10;
 	for (let p = 0; p < m3u8json.segments.length / pcount; p++) {
@@ -82,7 +85,7 @@ async function dlparts(m3u8json, fn, baseurl, proxy) {
 			}
 		}
 		if (prq.size > 0) {
-			throw new Error(`[ERROR] ${prq.size} parts not downloaded`);
+			throw new Error(`${prq.size} parts not downloaded`);
 		}
 		
 		let dled = offset + 10;
