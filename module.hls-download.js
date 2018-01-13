@@ -58,11 +58,11 @@ async function dlparts(m3u8json, fn, baseurl, proxy) {
 	let keys = {}
 	// delete file if exists
 	if (fs.existsSync(`${fn}.ts`)) {
-		console.log(`[INFO] ${fn}.ts already exists! Deleting...`);
+		console.log(`[INFO] «${fn}.ts» already exists! Deleting...`);
 		fs.unlinkSync(`${fn}.ts`);
 	}
 	// show target filename
-	console.log(`[INFO] Saving stream to ${fn}.ts`);
+	console.log(`[INFO] Saving stream to «${fn}.ts»`);
 	// dl parts
 	const pcount = 10;
 	for (let p = 0; p < m3u8json.segments.length / pcount; p++) {
@@ -100,7 +100,7 @@ async function dlparts(m3u8json, fn, baseurl, proxy) {
 function getDLedInfo(dled, total) {
 	const date_elapsed = Date.now() - date_start;
 	const percentFxd = (dled / total * 100).toFixed();
-	const percent = percentFxd < 100 ? percentFxd : 100;
+	const percent = percentFxd < 100 ? percentFxd : ( total == dled ? 100 : 99 );
 	const time = shlp.htime(((parseInt(date_elapsed * (total / dled - 1))) / 1000).toFixed());
 	console.log(`[INFO] ${dled} parts of ${total} downloaded [${percent}%] (${time})`);
 }
