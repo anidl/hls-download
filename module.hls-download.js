@@ -79,7 +79,7 @@ async function dlparts(m3u8json, fn, baseurl, proxy) {
 					prq.delete(r.p);
 					res[r.p - offset] = r.dec;
 				} catch (error) {
-					console.log(`[ERROR] Part ${error.p} download error: ${error.message}${x > 0 ? ', retry' : ', FAIL'}`);
+					console.log(`[ERROR] Part ${error.p} download error:\n\t${error.message}\n\t${x > 0 ? '[INFO] Retry...' : '[ERROR] FAIL'}`);
 					prq.set(error.p, dlpart(m3u8json, fn, error.p, baseurl, keys, proxy));
 				}
 			}
@@ -100,7 +100,7 @@ async function dlparts(m3u8json, fn, baseurl, proxy) {
 function getDLedInfo(dled, total) {
 	const date_elapsed = Date.now() - date_start;
 	const percentFxd = (dled / total * 100).toFixed();
-	const percent = percentFxd < 100 ? percentFxd : 99;
+	const percent = percentFxd < 100 ? percentFxd : 100;
 	const time = shlp.htime(((parseInt(date_elapsed * (total / dled - 1))) / 1000).toFixed());
 	console.log(`[INFO] ${dled} parts of ${total} downloaded [${percent}%] (${time})`);
 }
