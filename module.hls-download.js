@@ -13,7 +13,7 @@ function getData(method, url, proxy) {
 			'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:55.0) Gecko/20100101 Firefox/55.0'
 		}
 	};
-	if(authCookie){
+	if (authCookie) {
 		options.headers.Cookie = authCookie;
 	}
 	if (proxy && proxy.type === 'socks') {
@@ -37,7 +37,7 @@ function getData(method, url, proxy) {
 		request[method](options, (err, res) => {
 			if (err) return reject(err);
 			if (res.statusCode != 200) {
-				return reject(new Error(`Response code: ${res.statusCode}. Body: ${res.body}`));
+				return reject(new Error(`[ERROR] Response code: ${res.statusCode}. Body: ${res.body}`));
 			}
 			resolve(res);
 		});
@@ -51,14 +51,13 @@ function getURI(baseurl, uri) {
 	} else if (httpURI) {
 		return uri;
 	}
-
 	return baseurl + uri;
 }
 
 async function dlparts(m3u8json, fn, baseurl, proxy) {
 	let keys = {}
 	// delete file if exists
-	if(fs.existsSync(`${fn}.ts`)){
+	if (fs.existsSync(`${fn}.ts`)) {
 		fs.unlinkSync(`${fn}.ts`);
 	}
 	// dl parts
@@ -85,9 +84,9 @@ async function dlparts(m3u8json, fn, baseurl, proxy) {
 		if (prq.size > 0) {
 			throw new Error(`[ERROR] ${prq.size} parts not downloaded`);
 		}
-		let dled = offset + 10;
 		
-		getDLedInfo((dled<m3u8json.segments.length?dled:m3u8json.segments.length),m3u8json.segments.length);
+		let dled = offset + 10;
+		getDLedInfo((dled < m3u8json.segments.length ? dled : m3u8json.segments.length), m3u8json.segments.length);
 		
 		for (let r of res) {
 			fs.writeFileSync(`${fn}.ts`, r, { flag: 'a' });
@@ -95,7 +94,7 @@ async function dlparts(m3u8json, fn, baseurl, proxy) {
 	}
 }
 
-function getDLedInfo(dled,total){
+function getDLedInfo(dled, total) {
 	const date_elapsed = Date.now() - date_start;
 	const percentFxd = (dled / total * 100).toFixed();
 	const percent = percentFxd < 100 ? percentFxd : 99;
@@ -126,23 +125,25 @@ async function dlpart(m3u8json, fn, p, baseurl, keys, proxy) {
 	let pd = m3u8json.segments[p];
 	let decipher, part;
 	try {
-		decipher = await getDecipher(pd, keys, baseurl, proxy);
+		if (pd.key != undefined) {
+			decipher = await getDecipher(pd, keys, baseurl, proxy);
+		}
 		part = await getData('get', getURI(baseurl, pd.uri), proxy);
 	} catch (error) {
 		error.p = p;
 		throw error;
 	}
+	if (decipher == undefined) {
+		return { dec: part.body, p }
+	}
 	let dec = decipher.update(part.body);
 	dec = Buffer.concat([dec, decipher.final()]);
-	let part_num = p + 1;
-	let part_num_lng = part_num.toString().length;
 	return { dec, p }
 }
 
 module.exports = async (fn, m3u8json, baseurl, cookie, proxy) => {
-	// console.log({m3u8json, fn, baseurl});
 	console.log('[INFO] Starting downloading ts...')
-	if(cookie){
+	if (cookie) {
 		authCookie = cookie;
 	}
 	let res = { "ok": true };

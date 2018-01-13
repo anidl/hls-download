@@ -20,7 +20,7 @@ async function getStream(){
 	let getM3u8Sheet = await getData('http://example.com/path/to/your/stream.m3u8');
 	
 	let m3u8parse = new m3u8.Parser();
-	m3u8parse.push(audioM3u8Req.res.body);
+	m3u8parse.push(getM3u8Sheet.res.body);
 	m3u8parse.end();
 	let m3u8cfg = m3u8parse.manifest;
 	
@@ -29,7 +29,7 @@ async function getStream(){
 	// proxy = { "ip": "192.168.0.101:1234", "type": "socks" };
 	
 	// (fn, m3u8json, baseurl, cookie, proxy)
-	let mystream = await streamdl('myfile', m3u8cfg, false, false, proxy);
+	let mystream = await hlsdl('myfile', m3u8cfg, false, false, proxy);
 	
 	if(!mystream.ok){
 		console.log(`[ERROR] ${mystream.err}\n`);
@@ -37,6 +37,7 @@ async function getStream(){
 	else{
 		console.log(`[INFO] Video downloaded!\n`);
 	}
+	
 }
 
 
