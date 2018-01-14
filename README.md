@@ -24,12 +24,11 @@ async function getStream(){
 	m3u8parse.end();
 	let m3u8cfg = m3u8parse.manifest;
 	
-	let proxy = false;
+	let proxyObj = false;
 	// proxy = { "ip": "192.168.0.101:1234", "type": "http" }; // http(s)
 	// proxy = { "ip": "192.168.0.101:1234", "type": "socks" };
 	
-	// (fn, m3u8json, baseurl, cookie, proxy)
-	let mystream = await hlsdl('myfile', m3u8cfg, false, false, proxy);
+	let mystream = await hlsdl({ fn: "myfile", m3u8json: m3u8cfg, proxy: proxyObj });
 	
 	if(!mystream.ok){
 		console.log(`[ERROR] ${mystream.err}\n`);
