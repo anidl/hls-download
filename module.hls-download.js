@@ -9,7 +9,7 @@ function getData(url, authCookie, proxy) {
 	// base options
 	let options = {
 		headers: {
-			'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:55.0) Gecko/20100101 Firefox/55.0'
+			'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:57.0) Gecko/20100101 Firefox/57.0'
 		}
 	};
 	if (authCookie) {
@@ -36,7 +36,8 @@ function getData(url, authCookie, proxy) {
 		request.get(options, (err, res) => {
 			if (err) return reject(err);
 			if (res.statusCode != 200) {
-				return reject(new Error(`Response code: ${res.statusCode}. Body: ${res.body}`));
+				let resBody = res.body ? ` Body:\n\t${res.body}` : ``;
+				return reject(new Error(`Response code: ${res.statusCode}.${resBody}`));
 			}
 			resolve(res);
 		});
@@ -145,14 +146,13 @@ async function dlpart(m3u8json, fn, p, baseurl, keys, cookie, proxy) {
 
 module.exports = async (options) => {
 	// set options
-	options.pcount = options.pcount || 10;
+	options.pcount = options.pcount || 5;
 	options.rcount = options.rcount || 5;
 	const { fn, m3u8json, baseurl, cookie, proxy, pcount, rcount } = options;
 	// start
 	console.log('[INFO] Starting downloading ts...');
 	let res = { "ok": true };
 	try {
-		
 		await dlparts(m3u8json, fn, baseurl, cookie, proxy, pcount, rcount);
 	} catch (error) {
 		res = { "ok": false, "err": error };
