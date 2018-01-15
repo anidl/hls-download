@@ -105,7 +105,7 @@ function getDLedInfo(dateStart, dled, total) {
 	console.log(`[INFO] ${dled} parts of ${total} downloaded [${percent}%] (${time})`);
 }
 
-async function getDecipher(pd, keys, baseurl, cookie, proxy) {
+async function getDecipher(pd, keys, p, baseurl, cookie, proxy) {
 	const kURI = getURI(baseurl, pd.key.uri);
 	if (!keys[kURI]) {
 		const rkey = await getData(kURI, cookie, proxy);
@@ -116,7 +116,7 @@ async function getDecipher(pd, keys, baseurl, cookie, proxy) {
 	}
 	// get ivs
 	let iv = Buffer.alloc(16);
-	let ivs = pd.key.iv;
+	let ivs = pd.key.iv ? pd.key.iv : [0,0,0,p+1];
 	for (i in ivs) {
 		iv.writeUInt32BE(ivs[i], i * 4);
 	}
@@ -129,7 +129,7 @@ async function dlpart(m3u8json, fn, p, baseurl, keys, cookie, proxy) {
 	let decipher, part;
 	try {
 		if (pd.key != undefined) {
-			decipher = await getDecipher(pd, keys, baseurl, cookie, proxy);
+			decipher = await getDecipher(pd, keys, p, baseurl, cookie, proxy);
 		}
 		part = await getData(getURI(baseurl, pd.uri), cookie, proxy);
 	} catch (error) {
