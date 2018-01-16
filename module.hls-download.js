@@ -21,6 +21,10 @@ function getData(url, authCookie, proxy) {
 			socksHost: proxy.ip.split(':')[0],
 			socksPort: proxy.ip.split(':')[1]
 		};
+		if(proxy['socks-login'] && proxy['socks-pass']){
+			agentOptions.socksUsername = proxy['socks-login'];
+			agentOptions.socksPassword = proxy['socks-pass'];
+		}
 		options.agentOptions = agentOptions;
 		options.timeout = 10000;
 	}

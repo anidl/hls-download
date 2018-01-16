@@ -25,8 +25,17 @@ async function getStream(){
 	let m3u8cfg = m3u8parse.manifest;
 	
 	let proxyObj = false;
-	// proxy = { "ip": "192.168.0.101:1234", "type": "http" }; // http(s)
-	// proxy = { "ip": "192.168.0.101:1234", "type": "socks" };
+	/*
+	
+	// proxy http(s)
+	proxy = { "ip": "192.168.0.101:1234", "type": "http" };
+	// proxy socks
+	proxy = { "ip": "192.168.0.101:1234", "type": "socks" };
+	// proxy socks auth
+	proxy['socks-login'] = 'socks server login';
+	proxy['socks-pass'] = 'socks server password';
+	
+	*/
 	
 	let mystream = await hlsdl({ fn: "myfile", m3u8json: m3u8cfg, proxy: proxyObj });
 	
