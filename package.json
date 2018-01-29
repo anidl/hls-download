@@ -24,5 +24,8 @@
 		"request": "^2.83.0",
 		"sei-helper": "^1.2.0",
 		"socks5-https-client": "^1.2.1"
+	},
+	"devDependencies": {
+		"eslint": "^4.16.0"
 	}
 }
