@@ -3,6 +3,19 @@ const crypto = require('crypto');
 const request = require('request');
 const shlp = require('sei-helper');
 const fs = require('fs');
+const readline = require('readline');
+
+const question = query => new Promise(resolve => {
+	const rl = readline.createInterface({
+		input: process.stdin,
+		output: process.stdout,
+		terminal: false,
+	});
+	rl.question(query, (answer) => {
+		resolve(answer)
+		rl.close();
+	});
+});
 
 // async
 function getData(url, authCookie, proxy) {
@@ -21,7 +34,7 @@ function getData(url, authCookie, proxy) {
 			socksHost: proxy.ip.split(':')[0],
 			socksPort: proxy.ip.split(':')[1]
 		};
-		if(proxy['socks-login'] && proxy['socks-pass']){
+		if (proxy['socks-login'] && proxy['socks-pass']) {
 			agentOptions.socksUsername = proxy['socks-login'];
 			agentOptions.socksPassword = proxy['socks-pass'];
 		}
@@ -59,14 +72,19 @@ function getURI(baseurl, uri) {
 }
 
 async function dlparts(m3u8json, fn, baseurl, cookie, proxy, pcount, rcount) {
-	let keys = {}
-	// delete file if exists
+	let keys = {};
+	// ask before rewrite file
 	if (fs.existsSync(`${fn}.ts`)) {
-		console.log(`[INFO] «${fn}.ts» already exists! Deleting...`);
+		let rwts = await question('File «${fn}.ts» already exists! Rewrite? (y/N): ');
+		rwts = rwts || 'N';
+		if (!['Y', 'y'].includes(rwts[0])) {
+			return;
+		}
+		console.log(`[INFO] Deleting «${fn}.ts»...`);
 		fs.unlinkSync(`${fn}.ts`);
 	}
 	// show target filename
-	console.log(`[INFO] Saving stream to «${fn}.ts»`);
+	console.log(`[INFO] Saving stream to «${fn}.ts»...`);
 	let dateStart = Date.now();
 	// dl parts
 	for (let p = 0; p < m3u8json.segments.length / pcount; p++) {
@@ -83,7 +101,7 @@ async function dlparts(m3u8json, fn, baseurl, cookie, proxy, pcount, rcount) {
 					prq.delete(r.p);
 					res[r.p - offset] = r.dec;
 				} catch (error) {
-					console.log(`[ERROR] Part ${error.p} download error:\n\t${error.message}\n\t${x > 0 ? '[INFO] Retry...' : '[ERROR] FAIL'}`);
+					console.log(`[ERROR] Part ${error.p+1} download error:\n\t${error.message}\n\t${x > 0 ? '[INFO] Retry...' : '[ERROR] FAIL'}`);
 					prq.set(error.p, dlpart(m3u8json, fn, error.p, baseurl, keys, cookie, proxy));
 				}
 			}
@@ -120,7 +138,7 @@ async function getDecipher(pd, keys, p, baseurl, cookie, proxy) {
 	}
 	// get ivs
 	let iv = Buffer.alloc(16);
-	let ivs = pd.key.iv ? pd.key.iv : [0,0,0,p+1];
+	let ivs = pd.key.iv ? pd.key.iv : [0, 0, 0, p + 1];
 	for (i in ivs) {
 		iv.writeUInt32BE(ivs[i], i * 4);
 	}
