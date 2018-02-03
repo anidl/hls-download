@@ -19,6 +19,7 @@ getStream();
 async function getStream(){
 	
 	let getM3u8Sheet = await getData('http://example.com/path/to/your/stream.m3u8');
+	let headers = { "myCustomHeader": "ping" };
 	
 	let m3u8parse = new m3u8.Parser();
 	m3u8parse.push(getM3u8Sheet.res.body);
@@ -38,7 +39,7 @@ async function getStream(){
 	
 	*/
 	
-	let mystream = await hlsdl({ fn: "myfile", m3u8json: m3u8cfg, proxy: proxyObj });
+	let mystream = await hlsdl({ fn: "myfile", m3u8json: m3u8cfg, proxy: proxyObj, headers: headers });
 	
 	if(!mystream.ok){
 		console.log(`[ERROR] ${mystream.err}\n`);
