@@ -18,15 +18,17 @@ const question = query => new Promise(resolve => {
 });
 
 // async
-function getData(url, authCookie, proxy) {
+function getData(url, headers, proxy) {
 	// base options
 	let options = {
 		headers: {
 			'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:57.0) Gecko/20100101 Firefox/57.0'
 		}
 	};
-	if (authCookie) {
-		options.headers.Cookie = authCookie;
+	if (headers) {
+		for(let h=0;h<Object.keys(headers).length;h++){
+			options.headers[Object.keys(headers)[h]] = headers[Object.keys(headers)[h]];
+		}
 	}
 	if (proxy && proxy.type === 'socks') {
 		options.agentClass = agent;
@@ -71,7 +73,7 @@ function getURI(baseurl, uri) {
 	return baseurl + uri;
 }
 
-async function dlparts(m3u8json, fn, baseurl, cookie, proxy, pcount, rcount) {
+async function dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount) {
 	let keys = {};
 	// ask before rewrite file
 	if (fs.existsSync(`${fn}.ts`)) {
@@ -91,7 +93,7 @@ async function dlparts(m3u8json, fn, baseurl, cookie, proxy, pcount, rcount) {
 		let offset = p * pcount;
 		let prq = new Map();
 		for (let px = offset; px < offset + pcount && px < m3u8json.segments.length; px++) {
-			prq.set(px, dlpart(m3u8json, fn, px, baseurl, keys, cookie, proxy));
+			prq.set(px, dlpart(m3u8json, fn, px, baseurl, keys, headers, proxy));
 		}
 		let res = [];
 		for (let x = rcount; x--;) {
@@ -102,7 +104,7 @@ async function dlparts(m3u8json, fn, baseurl, cookie, proxy, pcount, rcount) {
 					res[r.p - offset] = r.dec;
 				} catch (error) {
 					console.log(`[ERROR] Part ${error.p+1} download error:\n\t${error.message}\n\t${x > 0 ? '[INFO] Retry...' : '[ERROR] FAIL'}`);
-					prq.set(error.p, dlpart(m3u8json, fn, error.p, baseurl, keys, cookie, proxy));
+					prq.set(error.p, dlpart(m3u8json, fn, error.p, baseurl, keys, headers, proxy));
 				}
 			}
 		}
@@ -127,10 +129,10 @@ function getDLedInfo(dateStart, dled, total) {
 	console.log(`[INFO] ${dled} parts of ${total} downloaded [${percent}%] (${time})`);
 }
 
-async function getDecipher(pd, keys, p, baseurl, cookie, proxy) {
+async function getDecipher(pd, keys, p, baseurl, headers, proxy) {
 	const kURI = getURI(baseurl, pd.key.uri);
 	if (!keys[kURI]) {
-		const rkey = await getData(kURI, cookie, proxy);
+		const rkey = await getData(kURI, headers, proxy);
 		if (!rkey || !rkey.body) {
 			throw new Error('key get error');
 		}
@@ -145,15 +147,15 @@ async function getDecipher(pd, keys, p, baseurl, cookie, proxy) {
 	return crypto.createDecipheriv('aes-128-cbc', keys[kURI], iv);
 }
 
-async function dlpart(m3u8json, fn, p, baseurl, keys, cookie, proxy) {
+async function dlpart(m3u8json, fn, p, baseurl, keys, headers, proxy) {
 	// console.log(`download segment ${p+1}`);
 	let pd = m3u8json.segments[p];
 	let decipher, part;
 	try {
 		if (pd.key != undefined) {
-			decipher = await getDecipher(pd, keys, p, baseurl, cookie, proxy);
+			decipher = await getDecipher(pd, keys, p, baseurl, headers, proxy);
 		}
-		part = await getData(getURI(baseurl, pd.uri), cookie, proxy);
+		part = await getData(getURI(baseurl, pd.uri), headers, proxy);
 	} catch (error) {
 		error.p = p;
 		throw error;
@@ -170,12 +172,12 @@ module.exports = async (options) => {
 	// set options
 	options.pcount = options.pcount || 5;
 	options.rcount = options.rcount || 5;
-	const { fn, m3u8json, baseurl, cookie, proxy, pcount, rcount } = options;
+	const { fn, m3u8json, baseurl, headers, proxy, pcount, rcount } = options;
 	// start
 	console.log('[INFO] Starting downloading ts...');
 	let res = { "ok": true };
 	try {
-		await dlparts(m3u8json, fn, baseurl, cookie, proxy, pcount, rcount);
+		await dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount);
 	} catch (error) {
 		res = { "ok": false, "err": error };
 	}
