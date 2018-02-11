@@ -77,7 +77,7 @@ async function dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount) {
 	let keys = {};
 	// ask before rewrite file
 	if (fs.existsSync(`${fn}.ts`)) {
-		let rwts = await question('File «${fn}.ts» already exists! Rewrite? (y/N): ');
+		let rwts = await question(`File «${fn}.ts» already exists! Rewrite? (y/N): `);
 		rwts = rwts || 'N';
 		if (!['Y', 'y'].includes(rwts[0])) {
 			return;
