@@ -156,15 +156,15 @@ async function dlpart(m3u8json, fn, p, baseurl, keys, headers, proxy) {
 			decipher = await getDecipher(pd, keys, p, baseurl, headers, proxy);
 		}
 		part = await getData(getURI(baseurl, pd.uri), headers, proxy);
+		if (decipher == undefined) {
+			return { dec: part.body, p }
+		}
+		let dec = decipher.update(part.body);
+		dec = Buffer.concat([dec, decipher.final()]);
 	} catch (error) {
 		error.p = p;
 		throw error;
 	}
-	if (decipher == undefined) {
-		return { dec: part.body, p }
-	}
-	let dec = decipher.update(part.body);
-	dec = Buffer.concat([dec, decipher.final()]);
 	return { dec, p }
 }
 
