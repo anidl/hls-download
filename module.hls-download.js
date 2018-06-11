@@ -150,7 +150,7 @@ async function getDecipher(pd, keys, p, baseurl, headers, proxy) {
 async function dlpart(m3u8json, fn, p, baseurl, keys, headers, proxy) {
 	// console.log(`download segment ${p+1}`);
 	let pd = m3u8json.segments[p];
-	let decipher, part;
+	let decipher, part, dec;
 	try {
 		if (pd.key != undefined) {
 			decipher = await getDecipher(pd, keys, p, baseurl, headers, proxy);
@@ -159,7 +159,7 @@ async function dlpart(m3u8json, fn, p, baseurl, keys, headers, proxy) {
 		if (decipher == undefined) {
 			return { dec: part.body, p }
 		}
-		let dec = decipher.update(part.body);
+		dec = decipher.update(part.body);
 		dec = Buffer.concat([dec, decipher.final()]);
 	} catch (error) {
 		error.p = p;
