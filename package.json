@@ -1,28 +1,28 @@
 {
-	"name": "hls-download",
-	"version": "1.3.2",
-	"description": "Download hls streams.",
-	"keywords": [
-		"hls",
-		"download",
-		"downloader",
-		"util",
-		"utility"
-	],
-	"author": "Seiya Loveless",
-	"homepage": "https://github.com/seiya-npm/hls-download#readme",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/seiya-npm/hls-download.git"
-	},
-	"bugs": {
-		"url": "https://github.com/seiya-npm/hls-download/issues"
-	},
-	"license": "MIT",
-	"main": "module.hls-download.js",
-	"dependencies": {
-		"request": "^2.87.0",
-		"sei-helper": "^1.3.0",
-		"socks5-https-client": "^1.2.1"
-	}
+    "name": "hls-download",
+    "version": "1.4.0",
+    "description": "Download hls streams.",
+    "keywords": [
+        "hls",
+        "download",
+        "downloader",
+        "util",
+        "utility"
+    ],
+    "author": "Seiya Loveless",
+    "homepage": "https://github.com/seiya-npm/hls-download#readme",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/seiya-npm/hls-download.git"
+    },
+    "bugs": {
+        "url": "https://github.com/seiya-npm/hls-download/issues"
+    },
+    "license": "MIT",
+    "main": "module.hls-download.js",
+    "dependencies": {
+        "request": "^2.87.0",
+        "sei-helper": "^2.0.0",
+        "socks5-https-client": "^1.2.1"
+    }
 }
