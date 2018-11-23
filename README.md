@@ -29,10 +29,12 @@ async function getStream(){
     let proxyObj = false;
     /*
     
-    // proxy http(s)
-    proxy = { "ip": "192.168.0.101:1234", "type": "http" };
+    // proxy http
+    proxy = { "host": "192.168.0.101", "port": 1234, "type": "http" };
+    // proxy https
+    proxy = { "host": "192.168.0.101", "port": 443, "type": "https" };
     // proxy socks
-    proxy = { "ip": "192.168.0.101:1234", "type": "socks" };
+    proxy = { "host": "192.168.0.101", "port": 1235, "type": "socks" };
     // proxy socks auth
     proxy['socks-login'] = 'socks server login';
     proxy['socks-pass'] = 'socks server password';
