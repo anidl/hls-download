@@ -20,12 +20,12 @@ function getFile(p) {
 function getData(url, headers, proxy) {
     // get file if url is local
     if (url.startsWith('file://')) {
-        return getFile(url)
+        return getFile(url);
     }
     // base options
     let options = {
         headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:57.0) Gecko/20100101 Firefox/57.0'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:63.0) Gecko/20100101 Firefox/63.0'
         }
     };
     if (headers) {
@@ -33,11 +33,15 @@ function getData(url, headers, proxy) {
             options.headers[Object.keys(headers)[h]] = headers[Object.keys(headers)[h]];
         }
     }
+    // proxy
+    if (proxy && proxy.ip){
+        proxy.host = proxy.ip;
+    }
     if (proxy && proxy.type === 'socks') {
         options.agentClass = agent;
         let agentOptions = {
-            socksHost: proxy.ip.split(':')[0],
-            socksPort: proxy.ip.split(':')[1]
+            socksHost: proxy.host.match(/:/) ? proxy.host.split(':')[0] : proxy.host,
+            socksPort: proxy.host.match(/:/) ? proxy.host.split(':')[1] : proxy.port
         };
         if (proxy['socks-login'] && proxy['socks-pass']) {
             agentOptions.socksUsername = proxy['socks-login'];
@@ -46,8 +50,8 @@ function getData(url, headers, proxy) {
         options.agentOptions = agentOptions;
         options.timeout = 10000;
     }
-    else if (proxy && proxy.type === 'http') {
-        options.proxy = 'http://' + proxy.ip;
+    else if (proxy && proxy.type === 'http' || proxy && proxy.type === 'https') {
+        options.proxy = `${proxy.type}://${proxy.host}` + ( proxy.port ? `:${proxy.port}` : ``);
         options.timeout = 10000;
     }
     // request parameters
@@ -80,7 +84,7 @@ async function dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount) {
     let keys = {};
     // ask before rewrite file
     if (fs.existsSync(`${fn}.ts`)) {
-        let rwts = await shlp.question(`File «${fn}.ts» already exists! Rewrite? (y/N): `);
+        let rwts = await shlp.question(`File «${fn}.ts» already exists! Rewrite? (y/N)`);
         rwts = rwts || 'N';
         if (!['Y', 'y'].includes(rwts[0])) {
             return;
