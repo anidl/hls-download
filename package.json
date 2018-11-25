@@ -1,6 +1,6 @@
 {
     "name": "hls-download",
-    "version": "1.5.0",
+    "version": "1.5.1",
     "description": "Download hls streams.",
     "keywords": [
         "hls",
@@ -22,6 +22,7 @@
     "main": "module.hls-download.js",
     "dependencies": {
         "request": "^2.88.0",
+        "tunnel-agent": "https://github.com/seiya-npm/tunnel-agent/archive/vlatest.tar.gz",
         "sei-helper": "^2.1.2",
         "socks5-https-client": "^1.2.1"
     }
