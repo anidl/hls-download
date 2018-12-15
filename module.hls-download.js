@@ -96,11 +96,22 @@ async function dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount, fo
     console.log(`[INFO] Saving stream to «${fn}.ts»...`);
     let dateStart = Date.now();
     // dl parts
+    if (m3u8json.segments && m3u8json.segments.length > 0 && m3u8json.segments[0].map) {
+        console.log(`[INFO] Download and save init part...`);
+        const initIndex = 0;
+        const initSeg = { segments: [{ ...m3u8json.segments[initIndex].map }] };
+        if(m3u8json.segments[initIndex].key){
+            initSeg.segments[initIndex].key = m3u8json.segments[initIndex].key;
+        }
+        const initDl = await dlpart(initSeg, initIndex, baseurl, keys, headers, proxy);
+        fs.writeFileSync(`${fn}.ts`, initDl.dec, { flag: 'a' });
+        console.log(`[INFO] Init part downloaded...`);
+    }
     for (let p = 0; p < m3u8json.segments.length / pcount; p++) {
         let offset = p * pcount;
         let prq = new Map();
         for (let px = offset; px < offset + pcount && px < m3u8json.segments.length; px++) {
-            prq.set(px, dlpart(m3u8json, fn, px, baseurl, keys, headers, proxy));
+            prq.set(px, dlpart(m3u8json, px, baseurl, keys, headers, proxy));
         }
         let res = [];
         for (let x = rcount; x--;) {
@@ -111,7 +122,7 @@ async function dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount, fo
                     res[r.p - offset] = r.dec;
                 } catch (error) {
                     console.log(`[ERROR] Part ${error.p+1} download error:\n\t${error.message}\n\t${x > 0 ? '[INFO] Retry...' : '[ERROR] FAIL'}`);
-                    prq.set(error.p, dlpart(m3u8json, fn, error.p, baseurl, keys, headers, proxy));
+                    prq.set(error.p, dlpart(m3u8json, error.p, baseurl, keys, headers, proxy));
                 }
             }
         }
@@ -154,7 +165,7 @@ async function getDecipher(pd, keys, p, baseurl, headers, proxy) {
     return crypto.createDecipheriv('aes-128-cbc', keys[kURI], iv);
 }
 
-async function dlpart(m3u8json, fn, p, baseurl, keys, headers, proxy) {
+async function dlpart(m3u8json, p, baseurl, keys, headers, proxy) {
     // console.log(`download segment ${p+1}`);
     let pd = m3u8json.segments[p];
     let decipher, part, dec;
