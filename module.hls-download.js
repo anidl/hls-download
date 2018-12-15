@@ -80,11 +80,11 @@ function getURI(baseurl, uri) {
     return baseurl + uri;
 }
 
-async function dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount) {
+async function dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount, forceRw, typeStream) {
     let keys = {};
     // ask before rewrite file
-    if (fs.existsSync(`${fn}.ts`)) {
-        let rwts = await shlp.question(`File «${fn}.ts» already exists! Rewrite? (y/N)`);
+    if (fs.existsSync(`${fn}.ts`) && !typeStream) {
+        let rwts = ( forceRw ? 'y' : false ) || await shlp.question(`File «${fn}.ts» already exists! Rewrite? (y/N)`);
         rwts = rwts || 'N';
         if (!['Y', 'y'].includes(rwts[0])) {
             return;
@@ -179,7 +179,7 @@ module.exports = async (options) => {
     // set options
     options.pcount = options.pcount || 5;
     options.rcount = options.rcount || 5;
-    const { fn, m3u8json, baseurl, headers, proxy, pcount, rcount } = options;
+    const { fn, m3u8json, baseurl, headers, proxy, pcount, rcount, forceRw, typeStream } = options;
     // start
     console.log('[INFO] Starting downloading ts...');
     let res = { "ok": true };
