@@ -195,7 +195,7 @@ module.exports = async (options) => {
     console.log('[INFO] Starting downloading ts...');
     let res = { "ok": true };
     try {
-        await dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount);
+        await dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount, forceRw, typeStream);
     } catch (error) {
         res = { "ok": false, "err": error };
     }
