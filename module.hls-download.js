@@ -143,7 +143,7 @@ function getDLedInfo(dateStart, dled, total) {
     const dateElapsed = Date.now() - dateStart;
     const percentFxd = (dled / total * 100).toFixed();
     const percent = percentFxd < 100 ? percentFxd : (total == dled ? 100 : 99);
-    const time = shlp.htime(((parseInt(dateElapsed * (total / dled - 1))) / 1000).toFixed());
+    const time = shlp.formatTime(((parseInt(dateElapsed * (total / dled - 1))) / 1000).toFixed());
     console.log(`[INFO] ${dled} parts of ${total} downloaded [${percent}%] (${time})`);
 }
 
