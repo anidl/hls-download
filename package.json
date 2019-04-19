@@ -1,6 +1,6 @@
 {
     "name": "hls-download",
-    "version": "1.7.1",
+    "version": "2.0.0-beta2",
     "description": "Download hls streams.",
     "keywords": [
         "hls",
@@ -21,9 +21,8 @@
     "license": "MIT",
     "main": "module.hls-download.js",
     "dependencies": {
-        "request": "^2.88.0",
-        "sei-helper": "^3.0.4",
-        "socks5-https-client": "^1.2.1",
-        "tunnel-agent": "https://github.com/seiya-npm/tunnel-agent/archive/master.tar.gz"
+        "got": "^9.6.0",
+        "proxy-agent": "^3.1.0",
+        "sei-helper": "^3.0.4"
     }
 }

@@ -1,73 +1,38 @@
-const agent = require('socks5-https-client/lib/Agent');
 const crypto = require('crypto');
-const request = require('request');
+const got = require('got');
+const ProxyAgent = require('proxy-agent');
 const shlp = require('sei-helper');
 const fs = require('fs');
 const url = require('url');
 
-// get file
-function getFile(p) {
-    let p = decodeURIComponent(url.parse(p).path);
-    return new Promise((resolve, reject) => {
-        fs.readFile(p, (err, data) => {
-            if (err) return reject(err);
-            resolve({body: data, statusCode: 200});
-        })
-    })
-}
-
 // get url
-function getData(url, headers, proxy) {
-    // get file if url is local
-    if (url.startsWith('file://')) {
-        return getFile(url);
+async function getData(uri, headers, proxy) {
+    // get file if uri is local
+    if (uri.startsWith('file://')) {
+        return {
+            body: fs.readFileSync(url.fileURLToPath(p)),
+        };
     }
     // base options
-    let options = {
-        headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:63.0) Gecko/20100101 Firefox/63.0'
-        }
-    };
-    if (headers) {
-        for(let h=0;h<Object.keys(headers).length;h++){
-            options.headers[Object.keys(headers)[h]] = headers[Object.keys(headers)[h]];
-        }
-    }
+    let options = {headers, encoding: null};
+    options.headers['User-Agent'] = headers['User-Agent'] || 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:63.0) Gecko/20100101 Firefox/63.0';
+
     // proxy
-    if (proxy && proxy.ip){
-        proxy.host = proxy.ip;
-    }
-    if (proxy && proxy.type === 'socks') {
-        options.agentClass = agent;
-        let agentOptions = {
-            socksHost: proxy.host.match(/:/) ? proxy.host.split(':')[0] : proxy.host,
-            socksPort: proxy.host.match(/:/) ? proxy.host.split(':')[1] : proxy.port
-        };
-        if (proxy['socks-login'] && proxy['socks-pass']) {
-            agentOptions.socksUsername = proxy['socks-login'];
-            agentOptions.socksPassword = proxy['socks-pass'];
-        }
-        options.agentOptions = agentOptions;
+    if (proxy) {
+        let host = proxy.host && proxy.host.match(':') ? proxy.host.split(':')[0] : ( proxy.host ? proxy.host : proxy.ip );
+        let port = proxy.host && proxy.host.match(':') ? proxy.host.split(':')[1] : proxy.port
+        let user = proxy.user || proxy['socks-login'];
+        let pass = proxy.pass || proxy['socks-pass'];
+        options.agent = new ProxyAgent(url.format({
+            protocol: proxy.type,
+            host: host,
+            port: port,
+            auth: user && pass ? [user, pass].join(':') : undefined,
+        }));
         options.timeout = 10000;
     }
-    else if (proxy && proxy.type === 'http' || proxy && proxy.type === 'https') {
-        options.proxy = `${proxy.type}://${proxy.host}` + ( proxy.port ? `:${proxy.port}` : ``);
-        options.timeout = 10000;
-    }
-    // request parameters
-    options.url = url;
-    options.encoding = null;
     // do request
-    return new Promise((resolve, reject) => {
-        request.get(options, (err, res) => {
-            if (err) return reject(err);
-            if (res.statusCode != 200) {
-                let resBody = res.body ? ` Body:\n\t${res.body}` : ``;
-                return reject(new Error(`Response code: ${res.statusCode}.${resBody}`));
-            }
-            resolve(res);
-        });
-    });
+    return got(uri, options);
 }
 
 function getURI(baseurl, uri) {
@@ -84,7 +49,7 @@ async function dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount, fo
     let keys = {};
     // ask before rewrite file
     if (fs.existsSync(`${fn}.ts`) && !typeStream) {
-        let rwts = ( forceRw ? 'y' : false ) || await shlp.question(`File «${fn}.ts» already exists! Rewrite? (y/N)`);
+        let rwts = ( forceRw ? 'y' : false ) || await shlp.question(`[INFO] File «${fn}.ts» already exists! Rewrite? (y/N)`);
         rwts = rwts || 'N';
         if (!['Y', 'y'].includes(rwts[0])) {
             return;
