@@ -14,9 +14,10 @@ async function getData(uri, headers, proxy) {
         };
     }
     // base options
-    let options = {headers, encoding: null};
-    options.headers['User-Agent'] = headers['User-Agent'] || 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:63.0) Gecko/20100101 Firefox/63.0';
-
+    headers = headers ? headers : {};
+    let options = { headers, encoding: null };
+    options.headers['User-Agent'] = headers['User-Agent']
+        || 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:65.0) Gecko/20100101 Firefox/65.0';
     // proxy
     if (proxy) {
         let host = proxy.host && proxy.host.match(':') ? proxy.host.split(':')[0] : ( proxy.host ? proxy.host : proxy.ip );
