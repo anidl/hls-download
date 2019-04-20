@@ -50,7 +50,7 @@ async function dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount, fo
     let keys = {};
     // ask before rewrite file
     if (fs.existsSync(`${fn}.ts`) && !typeStream) {
-        let rwts = ( forceRw ? 'y' : false ) || await shlp.question(`[INFO] File «${fn}.ts» already exists! Rewrite? (y/N)`);
+        let rwts = ( forceRw ? 'y' : false ) || await shlp.question(`[Q] File «${fn}.ts» already exists! Rewrite? (y/N)`);
         rwts = rwts || 'N';
         if (!['Y', 'y'].includes(rwts[0])) {
             return;
@@ -71,7 +71,7 @@ async function dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount, fo
         }
         const initDl = await dlpart(initSeg, initIndex, baseurl, keys, headers, proxy);
         fs.writeFileSync(`${fn}.ts`, initDl.dec, { flag: 'a' });
-        console.log(`[INFO] Init part downloaded...`);
+        console.log(`[INFO] Init part downloaded.`);
     }
     for (let p = 0; p < m3u8json.segments.length / pcount; p++) {
         let offset = p * pcount;
@@ -92,13 +92,14 @@ async function dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount, fo
                 }
             }
         }
+        // catch error
         if (prq.size > 0) {
             throw new Error(`${prq.size} parts not downloaded`);
         }
-
+        // log downloaded
         let dled = offset + pcount;
         getDLedInfo(dateStart, (dled < m3u8json.segments.length ? dled : m3u8json.segments.length), m3u8json.segments.length);
-
+        // write downloaded
         for (let r of res) {
             fs.writeFileSync(`${fn}.ts`, r, { flag: 'a' });
         }
@@ -118,7 +119,7 @@ async function getDecipher(pd, keys, p, baseurl, headers, proxy) {
     if (!keys[kURI]) {
         const rkey = await getData(kURI, headers, proxy);
         if (!rkey || !rkey.body) {
-            throw new Error('key get error');
+            throw new Error('Key get error');
         }
         keys[kURI] = rkey.body;
     }
@@ -132,7 +133,6 @@ async function getDecipher(pd, keys, p, baseurl, headers, proxy) {
 }
 
 async function dlpart(m3u8json, p, baseurl, keys, headers, proxy) {
-    // console.log(`download segment ${p+1}`);
     let pd = m3u8json.segments[p];
     let decipher, part, dec;
     try {
@@ -141,7 +141,7 @@ async function dlpart(m3u8json, p, baseurl, keys, headers, proxy) {
         }
         part = await getData(getURI(baseurl, pd.uri), headers, proxy);
         if (decipher == undefined) {
-            return { dec: part.body, p }
+            return { dec: part.body, p };
         }
         dec = decipher.update(part.body);
         dec = Buffer.concat([dec, decipher.final()]);
@@ -149,7 +149,7 @@ async function dlpart(m3u8json, p, baseurl, keys, headers, proxy) {
         error.p = p;
         throw error;
     }
-    return { dec, p }
+    return { dec, p };
 }
 
 module.exports = async (options) => {
@@ -158,9 +158,12 @@ module.exports = async (options) => {
     options.rcount = options.rcount || 5;
     const { fn, m3u8json, baseurl, headers, proxy, pcount, rcount, forceRw, typeStream } = options;
     // start
-    console.log('[INFO] Starting downloading ts...');
     let res = { "ok": true };
     try {
+        if(!m3u8json || !m3u8json.segments || m3u8json.segments.length === 0){
+            throw new Error('Playlist is empty');
+        }
+        console.log('[INFO] Starting downloading ts...');
         await dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount, forceRw, typeStream);
     } catch (error) {
         res = { "ok": false, "err": error };
