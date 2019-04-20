@@ -21,16 +21,19 @@ async function getData(uri, headers, proxy) {
     // proxy
     if (proxy) {
         let host = proxy.host && proxy.host.match(':') ? proxy.host.split(':')[0] : ( proxy.host ? proxy.host : proxy.ip );
-        let port = proxy.host && proxy.host.match(':') ? proxy.host.split(':')[1] : proxy.port
+        let port = proxy.host && proxy.host.match(':') ? proxy.host.split(':')[1] : proxy.port;
         let user = proxy.user || proxy['socks-login'];
         let pass = proxy.pass || proxy['socks-pass'];
-        options.agent = new ProxyAgent(url.format({
-            protocol: proxy.type,
-            host: host,
-            port: port,
-            auth: user && pass ? [user, pass].join(':') : undefined,
-        }));
-        options.timeout = 10000;
+        let auth = user && pass ? [user, pass].join(':') : undefined;
+        if(host && port){
+            options.agent = new ProxyAgent(url.format({
+                protocol: proxy.type,
+                host: host,
+                port: port,
+                auth: auth,
+            }));
+            options.timeout = 10000;
+        }
     }
     // do request
     return got(uri, options);
@@ -157,8 +160,9 @@ module.exports = async (options) => {
     options.pcount = options.pcount || 5;
     options.rcount = options.rcount || 5;
     const { fn, m3u8json, baseurl, headers, proxy, pcount, rcount, forceRw, typeStream } = options;
-    // start
+    // set status
     let res = { "ok": true };
+    // start
     try {
         if(!m3u8json || !m3u8json.segments || m3u8json.segments.length === 0){
             throw new Error('Playlist is empty');
@@ -168,5 +172,6 @@ module.exports = async (options) => {
     } catch (error) {
         res = { "ok": false, "err": error };
     }
+    // return status
     return res;
 };
