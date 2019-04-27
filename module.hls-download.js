@@ -1,9 +1,14 @@
+// build-in
 const crypto = require('crypto');
-const got = require('got');
-const ProxyAgent = require('proxy-agent');
-const shlp = require('sei-helper');
 const fs = require('fs');
 const url = require('url');
+
+// modules
+const shlp = require('sei-helper');
+const got = require('got').extend({
+    headers: { userAgent: 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:65.0) Gecko/20100101 Firefox/65.0' },
+});
+const ProxyAgent = require('proxy-agent');
 
 // get url
 async function getData(uri, headers, proxy) {
@@ -16,21 +21,20 @@ async function getData(uri, headers, proxy) {
     // base options
     headers = headers ? headers : {};
     let options = { headers, encoding: null };
-    options.headers['User-Agent'] = headers['User-Agent']
-        || 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:65.0) Gecko/20100101 Firefox/65.0';
     // proxy
     if (proxy) {
         let host = proxy.host && proxy.host.match(':') ? proxy.host.split(':')[0] : ( proxy.host ? proxy.host : proxy.ip );
-        let port = proxy.host && proxy.host.match(':') ? proxy.host.split(':')[1] : proxy.port;
+        let port = proxy.host && proxy.host.match(':') ? proxy.host.split(':')[1] : ( proxy.port ? proxy.port : null);
         let user = proxy.user || proxy['socks-login'];
         let pass = proxy.pass || proxy['socks-pass'];
-        let auth = user && pass ? [user, pass].join(':') : undefined;
+        let auth = user && pass ? [user, pass].join(':') : null;
         if(host && port){
             options.agent = new ProxyAgent(url.format({
-                protocol: proxy.type,
-                host: host,
-                port: port,
+                protocol: proxy.type + ':',
+                slashes: true,
                 auth: auth,
+                hostname: host,
+                port: port,
             }));
             options.timeout = 10000;
         }
