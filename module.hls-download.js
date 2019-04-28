@@ -47,7 +47,8 @@ function getURI(baseurl, uri) {
     const httpURI = /^https{0,1}:/.test(uri);
     if (!baseurl && !httpURI) {
         throw new Error('No base and not http(s) uri');
-    } else if (httpURI) {
+    }
+    else if (httpURI) {
         return uri;
     }
     return baseurl + uri;
@@ -93,7 +94,8 @@ async function dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount, fo
                 let r = await Promise.race(prq.values());
                 prq.delete(r.p);
                 res[r.p - offset] = r.dec;
-            } catch (error) {
+            }
+            catch (error) {
                 console.log(`[ERROR] Part ${error.p+1} download error:\n\t${error.message}`);
                 errcnt++
             }
@@ -104,7 +106,8 @@ async function dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount, fo
         }
         // log downloaded
         let dled = offset + pcount;
-        getDLedInfo(dateStart, (dled < m3u8json.segments.length ? dled : m3u8json.segments.length), m3u8json.segments.length);
+        dled = dled < m3u8json.segments.length ? dled : m3u8json.segments.length;
+        getDLedInfo(dateStart, dled, m3u8json.segments.length);
         // write downloaded
         for (let r of res) {
             fs.writeFileSync(`${fn}.ts`, r, { flag: 'a' });
@@ -151,7 +154,8 @@ async function dlpart(m3u8json, p, baseurl, keys, headers, proxy, rcount) {
         }
         dec = decipher.update(part.body);
         dec = Buffer.concat([dec, decipher.final()]);
-    } catch (error) {
+    }
+    catch (error) {
         error.p = p;
         throw error;
     }
