@@ -6,7 +6,7 @@ const url = require('url');
 // modules
 const shlp = require('sei-helper');
 const got = require('got').extend({
-    headers: { userAgent: 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:65.0) Gecko/20100101 Firefox/65.0' },
+    headers: { 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:65.0) Gecko/20100101 Firefox/65.0' },
 });
 const ProxyAgent = require('proxy-agent');
 
@@ -36,8 +36,11 @@ async function getData(uri, headers, proxy, retry) {
                 hostname: host,
                 port: port,
             }));
-            options.timeout = 10000;
         }
+        else if(proxy.url){
+            options.agent = new ProxyAgent(proxy.url);
+        }
+        options.timeout = 10000;
     }
     // do request
     return got(uri, options);
