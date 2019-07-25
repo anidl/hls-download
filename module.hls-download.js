@@ -11,7 +11,7 @@ const got = require('got').extend({
 });
 
 // parts data
-const parts = { total: 0, completed: 0 };
+const parts = { total: 0, completed: 0, first: 0 };
 
 // get url
 async function getData(uri, headers, proxy, retry) {
@@ -187,6 +187,9 @@ module.exports = async (options) => {
     try {
         if(!m3u8json || !m3u8json.segments || m3u8json.segments.length === 0){
             throw new Error('Playlist is empty');
+        }
+        if(typeof m3u8json.mediaSequence == 'number'){
+            parts.first = m3u8json.mediaSequence;
         }
         parts.total = m3u8json.segments.length;
         console.log('[INFO] Starting downloading ts...');
