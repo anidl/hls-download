@@ -40,7 +40,7 @@ async function getData(uri, headers, proxy, retry) {
         else if(proxy.url){
             options.agent = new ProxyAgent(proxy.url);
         }
-        options.timeout = 10000;
+        // options.timeout = 100000;
     }
     // do request
     return got(uri, options);
@@ -99,6 +99,7 @@ async function dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount, fo
                 res[r.p - offset] = r.dec;
             }
             catch (error) {
+                prq.delete(error.p);
                 console.log(`[ERROR] Part ${error.p+1} download error:\n\t${error.message}`);
                 errcnt++
             }
