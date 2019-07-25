@@ -5,10 +5,13 @@ const url = require('url');
 
 // modules
 const shlp = require('sei-helper');
+const ProxyAgent = require('proxy-agent');
 const got = require('got').extend({
     headers: { 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:65.0) Gecko/20100101 Firefox/65.0' },
 });
-const ProxyAgent = require('proxy-agent');
+
+// parts data
+const parts = { total: 0, completed: 0 };
 
 // get url
 async function getData(uri, headers, proxy, retry) {
@@ -70,7 +73,13 @@ async function dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount, fo
         fs.unlinkSync(`${fn}.ts`);
     }
     // show target filename
-    console.log(`[INFO] Saving stream to «${fn}.ts»...`);
+    if (fs.existsSync(`${fn}.ts`) && typeStream) {
+        console.log(`[INFO] Adding content to «${fn}.ts»...`);
+    }
+    else{
+        console.log(`[INFO] Saving stream to «${fn}.ts»...`);
+    }
+    // start time
     let dateStart = Date.now();
     // dl parts
     if (m3u8json.segments && m3u8json.segments.length > 0 && m3u8json.segments[0].map) {
@@ -111,6 +120,7 @@ async function dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount, fo
         // log downloaded
         let dled = offset + pcount;
         dled = dled < m3u8json.segments.length ? dled : m3u8json.segments.length;
+        parts.completed = dled;
         getDLedInfo(dateStart, dled, m3u8json.segments.length);
         // write downloaded
         for (let r of res) {
@@ -124,7 +134,7 @@ function getDLedInfo(dateStart, dled, total) {
     const percentFxd = (dled / total * 100).toFixed();
     const percent = percentFxd < 100 ? percentFxd : (total == dled ? 100 : 99);
     const time = shlp.formatTime(((parseInt(dateElapsed * (total / dled - 1))) / 1000).toFixed());
-    console.log(`[INFO] ${dled} parts of ${total} downloaded [${percent}%] (${time})`);
+    console.log(`[INFO] ${dled} of ${total} parts downloaded [${percent}%] (${time})`);
 }
 
 async function getDecipher(pd, keys, p, baseurl, headers, proxy, rcount) {
@@ -178,6 +188,7 @@ module.exports = async (options) => {
         if(!m3u8json || !m3u8json.segments || m3u8json.segments.length === 0){
             throw new Error('Playlist is empty');
         }
+        parts.total = m3u8json.segments.length;
         console.log('[INFO] Starting downloading ts...');
         await dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount, forceRw, typeStream);
     }
@@ -185,5 +196,6 @@ module.exports = async (options) => {
         res = { "ok": false, error };
     }
     // return status
+    res = Object.assign({ parts }, res);
     return res;
 };
