@@ -82,7 +82,7 @@ async function dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount, fo
     // start time
     let dateStart = Date.now();
     // dl init part
-    if (m3u8json.segments && m3u8json.segments.length > 0 && m3u8json.segments[0].map && !typeStream) {
+    if (m3u8json.segments && m3u8json.segments.length > 0 && m3u8json.segments[0].map && partsOffset == 0) {
         console.log(`[INFO] Download and save init part...`);
         const initIndex = 0;
         const initSeg = { segments: [{ ...m3u8json.segments[initIndex].map }] };
