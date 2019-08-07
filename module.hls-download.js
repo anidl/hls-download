@@ -43,7 +43,6 @@ async function getData(uri, headers, proxy, retry) {
         else if(proxy.url){
             options.agent = new ProxyAgent(proxy.url);
         }
-        // options.timeout = 100000;
     }
     // do request
     return got(uri, options);
@@ -60,8 +59,9 @@ function getURI(baseurl, uri) {
     return baseurl + uri;
 }
 
-async function dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount, forceRw, typeStream) {
+async function dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount, forceRw, typeStream, partsOffset) {
     let keys = {};
+    typeStream = partsOffset > 0 ? true : typeStream;
     // ask before rewrite file
     if (fs.existsSync(`${fn}.ts`) && !typeStream) {
         let rwts = ( forceRw ? 'y' : false ) || await shlp.question(`[Q] File «${fn}.ts» already exists! Rewrite? (y/N)`);
@@ -81,8 +81,8 @@ async function dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount, fo
     }
     // start time
     let dateStart = Date.now();
-    // dl parts
-    if (m3u8json.segments && m3u8json.segments.length > 0 && m3u8json.segments[0].map) {
+    // dl init part
+    if (m3u8json.segments && m3u8json.segments.length > 0 && m3u8json.segments[0].map && !typeStream) {
         console.log(`[INFO] Download and save init part...`);
         const initIndex = 0;
         const initSeg = { segments: [{ ...m3u8json.segments[initIndex].map }] };
@@ -93,6 +93,13 @@ async function dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount, fo
         fs.writeFileSync(`${fn}.ts`, initDl.dec, { flag: 'a' });
         console.log(`[INFO] Init part downloaded.`);
     }
+    // restore
+    if(partsOffset > 0){
+        m3u8json.segments = m3u8json.segments.slice(partsOffset);
+        console.log(`[INFO] Resuming download from part ${partsOffset+1}...`);
+        parts.completed = partsOffset;
+    }
+    // dl process
     for (let p = 0; p < m3u8json.segments.length / pcount; p++) {
         let offset = p * pcount;
         let prq = new Map();
@@ -109,7 +116,7 @@ async function dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount, fo
             }
             catch (error) {
                 prq.delete(error.p);
-                console.log(`[ERROR] Part ${error.p+1} download error:\n\t${error.message}`);
+                console.log(`[ERROR] Part ${error.p+1+partsOffset} download error:\n\t${error.message}`);
                 errcnt++
             }
         }
@@ -119,9 +126,10 @@ async function dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount, fo
         }
         // log downloaded
         let dled = offset + pcount;
-        dled = dled < m3u8json.segments.length ? dled : m3u8json.segments.length;
-        parts.completed = dled;
-        getDLedInfo(dateStart, dled, m3u8json.segments.length);
+        let segL = m3u8json.segments.length;
+        dled = dled < segL ? dled : segL;
+        parts.completed = dled + partsOffset;
+        getDLedInfo(dateStart, dled, segL, parts.completed, parts.total);
         // write downloaded
         for (let r of res) {
             fs.writeFileSync(`${fn}.ts`, r, { flag: 'a' });
@@ -129,12 +137,12 @@ async function dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount, fo
     }
 }
 
-function getDLedInfo(dateStart, dled, total) {
+function getDLedInfo(dateStart, dled, total, dledt, totalt) {
     const dateElapsed = Date.now() - dateStart;
     const percentFxd = (dled / total * 100).toFixed();
     const percent = percentFxd < 100 ? percentFxd : (total == dled ? 100 : 99);
     const time = shlp.formatTime(((parseInt(dateElapsed * (total / dled - 1))) / 1000).toFixed());
-    console.log(`[INFO] ${dled} of ${total} parts downloaded [${percent}%] (${time})`);
+    console.log(`[INFO] ${dledt} of ${totalt} parts downloaded [${percent}%] (${time})`);
 }
 
 async function getDecipher(pd, keys, p, baseurl, headers, proxy, rcount) {
@@ -163,6 +171,9 @@ async function dlpart(m3u8json, p, baseurl, keys, headers, proxy, rcount) {
             decipher = await getDecipher(pd, keys, p, baseurl, headers, proxy, rcount);
         }
         part = await getData(getURI(baseurl, pd.uri), headers, proxy, rcount);
+        if(!part.complete){
+            throw new Error('Part get error');
+        }
         if (decipher == undefined) {
             return { dec: part.body, p };
         }
@@ -178,9 +189,10 @@ async function dlpart(m3u8json, p, baseurl, keys, headers, proxy, rcount) {
 
 module.exports = async (options) => {
     // set options
-    options.pcount = options.pcount || 5;
-    options.rcount = options.rcount || 5;
-    const { fn, m3u8json, baseurl, headers, proxy, pcount, rcount, forceRw, typeStream } = options;
+    options.pcount      = options.pcount      || 5;
+    options.rcount      = options.rcount      || 5;
+    options.partsOffset = options.partsOffset || 0;
+    const { fn, m3u8json, baseurl, headers, proxy, pcount, rcount, forceRw, typeStream, partsOffset } = options;
     // set status
     let res = { "ok": true };
     // start
@@ -193,7 +205,7 @@ module.exports = async (options) => {
         }
         parts.total = m3u8json.segments.length;
         console.log('[INFO] Starting downloading ts...');
-        await dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount, forceRw, typeStream);
+        await dlparts(m3u8json, fn, baseurl, headers, proxy, pcount, rcount, forceRw, typeStream, partsOffset);
     }
     catch (error) {
         res = { "ok": false, error };

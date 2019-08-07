@@ -1,6 +1,6 @@
 {
     "name": "hls-download",
-    "version": "2.1.1",
+    "version": "2.1.2",
     "description": "Download hls streams.",
     "keywords": [
         "hls",
