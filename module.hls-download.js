@@ -171,9 +171,6 @@ async function dlpart(m3u8json, p, baseurl, keys, headers, proxy, rcount) {
             decipher = await getDecipher(pd, keys, p, baseurl, headers, proxy, rcount);
         }
         part = await getData(getURI(baseurl, pd.uri), headers, proxy, rcount);
-        if(!part.complete){
-            throw new Error('Part get error');
-        }
         if (decipher == undefined) {
             return { dec: part.body, p };
         }
