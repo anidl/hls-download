@@ -12,6 +12,8 @@ const got = require('got').extend({
 
 // parts data
 const parts = { total: 0, completed: 0, first: 0 };
+let checkKeyLength  = true;
+let checkPartLength = true;
 
 // get url
 async function getData(uri, headers, proxy, retry) {
@@ -152,6 +154,15 @@ async function getDecipher(pd, keys, p, baseurl, headers, proxy, rcount) {
         if (!rkey || !rkey.body) {
             throw new Error('Key get error');
         }
+        if(checkKeyLength && rkey.headers['content-length']){
+            if(rkey.body.length != rkey.headers['content-length']){
+                throw new Error('Key not fully downloaded');
+            }
+        }
+        if(checkKeyLength && !rkey.headers['content-length']){
+            checkKeyLength = false;
+            console.log(`[WARN] Can't check key size!`);
+        }
         keys[kURI] = rkey.body;
     }
     // get ivs
@@ -171,6 +182,15 @@ async function dlpart(m3u8json, p, baseurl, keys, headers, proxy, rcount) {
             decipher = await getDecipher(pd, keys, p, baseurl, headers, proxy, rcount);
         }
         part = await getData(getURI(baseurl, pd.uri), headers, proxy, rcount);
+        if(checkPartLength && part.headers['content-length']){
+            if(part.body.length != part.headers['content-length']){
+                throw new Error('Part not fully downloaded');
+            }
+        }
+        if(checkPartLength && !part.headers['content-length']){
+            checkPartLength = false;
+            console.log(`[WARN] Can't check parts size!`);
+        }
         if (decipher == undefined) {
             return { dec: part.body, p };
         }
