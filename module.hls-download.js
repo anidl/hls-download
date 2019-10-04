@@ -15,7 +15,7 @@ const parts = { total: 0, completed: 0, first: 0 };
 let checkPartLength = true;
 
 // get url
-async function getData(uri, headers, proxy, retry) {
+async function getData(uri, headers, proxy, retry, afterResponse) {
     // get file if uri is local
     if (uri.startsWith('file://')) {
         return {
@@ -24,11 +24,18 @@ async function getData(uri, headers, proxy, retry) {
     }
     // base options
     headers = headers ? headers : {};
-    let options = { headers, retry, encoding: null };
+    let options = { headers, retry, encoding: null, hooks: {
+        afterResponse,
+        beforeRetry: [
+            (options, error, retryCount) => {
+                console.log('[ERROR] %d attempt to retrieve data', retryCount);
+            }
+        ]
+    }};
     // proxy
     if (proxy) {
         let host = proxy.host && proxy.host.match(':') ? proxy.host.split(':')[0] : ( proxy.host ? proxy.host : proxy.ip );
-        let port = proxy.host && proxy.host.match(':') ? proxy.host.split(':')[1] : ( proxy.port ? proxy.port : null);
+        let port = proxy.host && proxy.host.match(':') ? proxy.host.split(':')[1] : ( proxy.port ? proxy.port : null );
         let user = proxy.user || proxy['socks-login'];
         let pass = proxy.pass || proxy['socks-pass'];
         let auth = user && pass ? [user, pass].join(':') : null;
@@ -149,13 +156,19 @@ function getDLedInfo(dateStart, dled, total, dledt, totalt) {
 async function getDecipher(pd, keys, p, baseurl, headers, proxy, rcount) {
     const kURI = getURI(baseurl, pd.key.uri);
     if (!keys[kURI]) {
-        const rkey = await getData(kURI, headers, proxy, rcount);
-        if (!rkey || !rkey.body) {
-            throw new Error('Key get error');
-        }
-        if(!rkey.body || rkey.body.length != 16){
-            throw new Error('Key not fully downloaded');
-        }
+        const rkey = await getData(kURI, headers, proxy, rcount, [
+            (res, retryWithMergedOptions) => {
+                if (!res || !res.body) {
+                    // 'Key get error'
+                    return retryWithMergedOptions();
+                }
+                if(res.body.length != 16){
+                    // 'Key not fully downloaded'
+                    return retryWithMergedOptions();
+                }
+                return res;
+            }
+        ]);
         keys[kURI] = rkey.body;
     }
     // get ivs
@@ -174,12 +187,17 @@ async function dlpart(m3u8json, p, baseurl, keys, headers, proxy, rcount) {
         if (pd.key != undefined) {
             decipher = await getDecipher(pd, keys, p, baseurl, headers, proxy, rcount);
         }
-        part = await getData(getURI(baseurl, pd.uri), headers, proxy, rcount);
-        if(checkPartLength && part.headers['content-length']){
-            if(!part.body || part.body.length != part.headers['content-length']){
-                throw new Error('Part not fully downloaded');
+        part = await getData(getURI(baseurl, pd.uri), headers, proxy, rcount, [
+            (res, retryWithMergedOptions) => {
+                if(checkPartLength && res.headers['content-length']){
+                    if(!res.body || res.body.length != res.headers['content-length']){
+                        // 'Part not fully downloaded'
+                        return retryWithMergedOptions();
+                    }
+                }
+                return res;
             }
-        }
+        ]);
         if(checkPartLength && !part.headers['content-length']){
             checkPartLength = false;
             console.log(`[WARN] Can't check parts size!`);
