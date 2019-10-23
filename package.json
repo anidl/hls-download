@@ -1,6 +1,6 @@
 {
     "name": "hls-download",
-    "version": "2.2.0",
+    "version": "2.2.1",
     "description": "Download hls streams.",
     "keywords": [
         "hls",
@@ -22,7 +22,7 @@
     "main": "module.hls-download.js",
     "dependencies": {
         "got": "^9.6.0",
-        "proxy-agent": "^3.1.0",
+        "proxy-agent": "^3.1.1",
         "sei-helper": "^3.1.0"
     }
 }
