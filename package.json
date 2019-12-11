@@ -1,6 +1,6 @@
 {
     "name": "hls-download",
-    "version": "2.2.1",
+    "version": "2.3.0",
     "description": "Download hls streams.",
     "keywords": [
         "hls",
@@ -9,7 +9,7 @@
         "util",
         "utility"
     ],
-    "author": "Seiya Loveless",
+    "author": "Seiya Dev.",
     "homepage": "https://github.com/seiya-npm/hls-download#readme",
     "repository": {
         "type": "git",
@@ -19,9 +19,9 @@
         "url": "https://github.com/seiya-npm/hls-download/issues"
     },
     "license": "MIT",
-    "main": "module.hls-download.js",
+    "main": "src/hls-download.js",
     "dependencies": {
-        "got": "^9.6.0",
+        "got": "^10.0.3",
         "proxy-agent": "^3.1.1",
         "sei-helper": "^3.1.0"
     }
