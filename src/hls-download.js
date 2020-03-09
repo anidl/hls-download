@@ -46,13 +46,55 @@ class hlsDownload {
     async download(){
         // set output
         const fn = this.data.outputFile;
+        // try load resume file
+        if(fs.existsSync(fn) && fs.existsSync(`${fn}.resume`) && this.data.offset < 1){
+            try{
+                console.log('[INFO] Resume data found! Trying to resume...');
+                const resumeData = JSON.parse(fs.readFileSync(`${fn}.resume`, 'utf-8'));
+                if(
+                    resumeData.total == this.data.m3u8json.segments.length
+                    && resumeData.completed != resumeData.total
+                    && !isNaN(resumeData.completed)
+                ){
+                    this.data.offset = resumeData.completed;
+                    this.data.isResume = true;
+                }
+            }
+            catch(e){
+                console.log('[ERROR] Resume failed, downloading will be not resumed!');
+                console.log(e);
+            }
+        }
+        // stream
+        /*
+        if(m3u8cfg.mediaSequence > 0){
+            isStream = true;
+        }
+        if(m3u8cfg.mediaSequence > 0){
+            // stream status
+            dledSeg  = nextSeg > 0 ? nextSeg - 1 : 0;
+            firstSeg = m3u8cfg.mediaSequence;
+            startSeg = nextSeg > 0 ? nextSeg : firstSeg;
+            lastSeg  = firstSeg + m3u8cfg.segments.length;
+            segCount = dledSeg < firstSeg ? m3u8cfg.segments.length : lastSeg - dledSeg;
+            // log stream data
+            console.log(`[INFO] ~ Stream download status ~`);
+            console.log(`  Last downloaded segment: ${dledSeg}`);
+            console.log(`  Segments range         : ${startSeg} (${firstSeg}) - ${lastSeg}`);
+            console.log(`  Segments count         : ${segCount}`);
+            // update
+            m3u8cfg.mediaSequence = startSeg;
+            nextSeg               = lastSeg + 1;
+            m3u8cfg.segments = m3u8cfg.segments.slice(m3u8cfg.segments.length - segCount);
+        }
+        */
         // ask before rewrite file
         if (fs.existsSync(`${fn}`) && !this.data.isResume) {
             let rwts = ( this.data.forceRw ? 'y' : false ) 
                 || await shlp.question(`[Q] File «${fn}» already exists! Rewrite? (y/N)`);
             rwts = rwts || 'N';
             if (!['Y', 'y'].includes(rwts[0])) {
-                return;
+                return { ok: true, parts: this.data.parts };
             }
             console.log(`[INFO] Deleting «${fn}»...`);
             fs.unlinkSync(fn);
@@ -216,13 +258,13 @@ const extFn = {
         }
         return baseurl + uri;
     },
-    logDownloadInfo: (dateStart, partsDownloaded, partsTotal, partsDownloadedText, partsTotalText) => {
+    logDownloadInfo: (dateStart, partsDL, partsTotal, partsDLRes, partsTotalRes) => {
         const dateElapsed = Date.now() - dateStart;
-        const percentFxd = (partsDownloaded / partsTotal * 100).toFixed();
-        const percent = percentFxd < 100 ? percentFxd : (partsTotal == partsDownloaded ? 100 : 99);
-        const revParts = parseInt(dateElapsed * (partsTotal / partsDownloaded - 1));
+        const percentFxd = (partsDL / partsTotal * 100).toFixed();
+        const percent = percentFxd < 100 ? percentFxd : (partsTotal == partsDL ? 100 : 99);
+        const revParts = parseInt(dateElapsed * (partsTotal / partsDL - 1));
         const time = shlp.formatTime((revParts / 1000).toFixed());
-        console.log(`[INFO] ${partsDownloaded} of ${partsTotalText} parts downloaded [${percent}%] (${time})`);
+        console.log(`[INFO] ${partsDLRes} of ${partsTotalRes} parts downloaded [${percent}%] (${time})`);
     },
     initProxy: (proxy) => {
         const host = proxy.host && proxy.host.match(':') 
