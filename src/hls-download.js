@@ -267,6 +267,8 @@ const extFn = {
         console.log(`[INFO] ${partsDLRes} of ${partsTotalRes} parts downloaded [${percent}%] (${time})`);
     },
     initProxy: (proxy) => {
+        return {};
+        /*
         const host = proxy.host && proxy.host.match(':') 
             ? proxy.host.split(':')[0] : ( proxy.host ? proxy.host : proxy.ip );
         const port = proxy.host && proxy.host.match(':') 
@@ -289,6 +291,7 @@ const extFn = {
         else if(proxy.url){
             return new ProxyAgent(proxy.url);
         }
+        */
     },
     getData: (partIndex, uri, headers, proxy, retry, afterResponse) => {
         // get file if uri is local
@@ -310,7 +313,7 @@ const extFn = {
         }};
         // proxy
         if (proxy) {
-            options.agent = proxy;
+            // options.agent = proxy;
         }
         // do request
         return got(uri, options);
