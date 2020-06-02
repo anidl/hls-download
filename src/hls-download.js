@@ -56,8 +56,16 @@ class hlsDownload {
                     && resumeData.completed != resumeData.total
                     && !isNaN(resumeData.completed)
                 ){
+                    console.log('[INFO] Resume data is ok!');
                     this.data.offset = resumeData.completed;
                     this.data.isResume = true;
+                }
+                else{
+                    console.log('[INFO] Resume data is wrong!');
+                    console.log({
+                        resume: { total: resumeData.total, dled: resumeData.completed },
+                        current: { total: this.data.m3u8json.segments.length },
+                    });
                 }
             }
             catch(e){
