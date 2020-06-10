@@ -5,9 +5,7 @@ const url = require('url');
 
 // extra
 const shlp = require('sei-helper');
-const got = require('got').extend({
-    headers: { 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:70.0) Gecko/20100101 Firefox/70.0' },
-});
+const got = require('got');
 
 // hls class
 class hlsDownload {
@@ -73,29 +71,6 @@ class hlsDownload {
                 console.log(e);
             }
         }
-        // stream
-        /*
-        if(m3u8cfg.mediaSequence > 0){
-            isStream = true;
-        }
-        if(m3u8cfg.mediaSequence > 0){
-            // stream status
-            dledSeg  = nextSeg > 0 ? nextSeg - 1 : 0;
-            firstSeg = m3u8cfg.mediaSequence;
-            startSeg = nextSeg > 0 ? nextSeg : firstSeg;
-            lastSeg  = firstSeg + m3u8cfg.segments.length;
-            segCount = dledSeg < firstSeg ? m3u8cfg.segments.length : lastSeg - dledSeg;
-            // log stream data
-            console.log(`[INFO] ~ Stream download status ~`);
-            console.log(`  Last downloaded segment: ${dledSeg}`);
-            console.log(`  Segments range         : ${startSeg} (${firstSeg}) - ${lastSeg}`);
-            console.log(`  Segments count         : ${segCount}`);
-            // update
-            m3u8cfg.mediaSequence = startSeg;
-            nextSeg               = lastSeg + 1;
-            m3u8cfg.segments = m3u8cfg.segments.slice(m3u8cfg.segments.length - segCount);
-        }
-        */
         // ask before rewrite file
         if (fs.existsSync(`${fn}`) && !this.data.isResume) {
             let rwts = ( this.data.forceRw ? 'y' : false ) 
@@ -127,7 +102,7 @@ class hlsDownload {
                 initSeg.key = segments[0].key;
             }
             try{
-                const initDl = await this.downloadPart(initSeg, 'init', proxy);
+                const initDl = await this.downloadPart(initSeg, 'init', proxy, 0);
                 fs.writeFileSync(fn, initDl.dec, { flag: 'a' });
                 console.log(`[INFO] Init part downloaded.`);
             }
@@ -151,12 +126,33 @@ class hlsDownload {
             let offset = p * this.data.threads;
             let dlOffset = offset + this.data.threads;
             // map download threads
-            let prq = new Map();
-            for (let px = offset; px < dlOffset && px < segments.length; px++) {
-                prq.set(px, this.downloadPart(segments[px], px, proxy));
+            let klnk = [], krq = new Map(), prq = new Map();
+            let res = [], kerrcnt = 0, errcnt = 0;
+            for (let px = offset; px < dlOffset && px < segments.length; px++){
+                let curp = segments[px];
+                if(!klnk.includes(curp.key.uri) && !this.data.keys[curp.key.uri]){
+                    klnk.push(curp.key.uri);
+                    krq.set(px, this.downloadKey(curp.key, px, proxy, this.data.offset));
+                }
             }
-            // download threads
-            let res = [], errcnt = 0;
+            if(krq.size > 0){
+                for (let i = krq.size; i--;) {
+                    try {
+                        let kr = await Promise.race(krq.values());
+                        krq.delete(kr.p);
+                    }
+                    catch (error) {
+                        krq.delete(error.p);
+                        console.log('[ERROR] Key for part %s download error:\n\t%s',
+                            error.p + 1 + this.data.offset, error.message);
+                        errcnt++;
+                    }
+                }
+            }
+            for (let px = offset; px < dlOffset && px < segments.length; px++){
+                let curp = segments[px];
+                prq.set(px, this.downloadPart(curp, px, proxy, this.data.offset));
+            }
             for (let i = prq.size; i--;) {
                 try {
                     let r = await Promise.race(prq.values());
@@ -192,14 +188,14 @@ class hlsDownload {
         // return result
         return { ok: true, parts: this.data.parts };
     }
-    async downloadPart(seg, segIndex, proxy){
+    async downloadPart(seg, segIndex, proxy, segOffset){
         const sURI = extFn.getURI(this.data.baseurl, seg.uri);
         let decipher, part, dec, p = segIndex;
         try {
             if (seg.key != undefined) {
-                decipher = await this.downloadKey(seg.key, p, proxy);
+                decipher = await this.getKey(seg.key, p, proxy, segOffset);
             }
-            part = await extFn.getData(p, sURI, this.data.headers, proxy, this.data.retries, [
+            part = await extFn.getData(p, sURI, this.data.headers, segOffset, proxy, this.data.retries, [
                 (res, retryWithMergedOptions) => {
                     if(this.data.checkPartLength && res.headers['content-length']){
                         if(!res.body || res.body.length != res.headers['content-length']){
@@ -212,7 +208,7 @@ class hlsDownload {
             ]);
             if(this.data.checkPartLength && !part.headers['content-length']){
                 this.data.checkPartLength = false;
-                console.log(`[WARN] Part ${segIndex+1}: can't check parts size!`);
+                console.log(`[WARN] Part ${segIndex+segOffset+1}: can't check parts size!`);
             }
             if (decipher == undefined) {
                 return { dec: part.body, p };
@@ -226,24 +222,45 @@ class hlsDownload {
         }
         return { dec, p };
     }
-    async downloadKey(key, segIndex, proxy){
+    async downloadKey(key, segIndex, proxy, segOffset){
         const kURI = extFn.getURI(this.data.baseurl, key.uri);
         const p = segIndex == 'init' ? 0 : segIndex;
         if (!this.data.keys[kURI]) {
-            const rkey = await extFn.getData(p, kURI, this.data.headers, proxy, this.data.retries, [
-                (res, retryWithMergedOptions) => {
-                    if (!res || !res.body) {
-                        // 'Key get error'
-                        return retryWithMergedOptions();
+            try {
+                const rkey = await extFn.getData(p, kURI, this.data.headers, segOffset, proxy, this.data.retries, [
+                    (res, retryWithMergedOptions) => {
+                        if (!res || !res.body) {
+                            // 'Key get error'
+                            return retryWithMergedOptions();
+                        }
+                        if(res.body.length != 16){
+                            // 'Key not fully downloaded'
+                            return retryWithMergedOptions();
+                        }
+                        return res;
                     }
-                    if(res.body.length != 16){
-                        // 'Key not fully downloaded'
-                        return retryWithMergedOptions();
-                    }
-                    return res;
-                }
-            ]);
-            this.data.keys[kURI] = rkey.body;
+                ]);
+                this.data.keys[kURI] = rkey.body;
+                return rkey;
+            }
+            catch (error) {
+                error.p = p;
+                throw error;
+            }
+        }
+    }
+    async getKey(key, segIndex, proxy, segOffset){
+        const kURI = extFn.getURI(this.data.baseurl, key.uri);
+        const p = segIndex == 'init' ? 0 : segIndex;
+        if (!this.data.keys[kURI]) {
+            try{
+                const rkey = await this.downloadKey(key, segIndex, proxy, segOffset);
+                this.data.keys[kURI] = rkey.body;
+            }
+            catch (error) {
+                error.p = p;
+                throw error;
+            }
         }
         // get ivs
         let iv = Buffer.alloc(16);
@@ -276,32 +293,8 @@ const extFn = {
     },
     initProxy: (proxy) => {
         return {};
-        /*
-        const host = proxy.host && proxy.host.match(':') 
-            ? proxy.host.split(':')[0] : ( proxy.host ? proxy.host : proxy.ip );
-        const port = proxy.host && proxy.host.match(':') 
-            ? proxy.host.split(':')[1] : ( proxy.port ? proxy.port : null );
-        const user = proxy.user || proxy['socks-login'];
-        const pass = proxy.pass || proxy['socks-pass'];
-        const auth = user && pass ? [user, pass].join(':') : null;
-        if(host && port || proxy.url){
-            const ProxyAgent = require('proxy-agent');
-        }
-        if(host && port){
-            return new ProxyAgent(url.format({
-                protocol: proxy.type,
-                slashes: true,
-                auth: auth,
-                hostname: host,
-                port: port,
-            }));
-        }
-        else if(proxy.url){
-            return new ProxyAgent(proxy.url);
-        }
-        */
     },
-    getData: (partIndex, uri, headers, proxy, retry, afterResponse) => {
+    getData: (partIndex, uri, headers, segOffset, proxy, retry, afterResponse) => {
         // get file if uri is local
         if (uri.startsWith('file://')) {
             return {
@@ -309,13 +302,30 @@ const extFn = {
             };
         }
         // base options
-        headers = headers ? headers : {};
+        headers = headers && typeof headers == 'object' ? headers : {};
         let options = { headers, retry, responseType: 'buffer', hooks: {
+            beforeRequest: [
+                (options) => {
+                    if(!options.headers['user-agent']){
+                        options.headers['user-agent'] = 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:70.0) Gecko/20100101 Firefox/70.0';
+                    }
+                    // console.log(' - Req:', options.url.pathname);
+                }
+            ],
             afterResponse,
             beforeRetry: [
                 (options, error, retryCount) => {
-                    console.log('[WARN] Part %s: %d attempt to retrieve data', partIndex, retryCount + 1);
+                    console.log('[WARN] Part %s: %d attempt to retrieve data', partIndex + 1 + segOffset, retryCount + 1);
                     console.log(`\tERROR: ${error.message}`);
+                }
+            ],
+            beforeError: [
+                error => {
+                    const abortedMsg = 'The server aborted the pending request';
+                    if(error.message == abortedMsg && error.code == undefined){
+                        error.code = 'ECONNRESET';
+                    }
+                    return error;
                 }
             ]
         }};
