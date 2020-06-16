@@ -318,15 +318,6 @@ const extFn = {
                     console.log('[WARN] Part %s: %d attempt to retrieve data', partIndex + 1 + segOffset, retryCount + 1);
                     console.log(`\tERROR: ${error.message}`);
                 }
-            ],
-            beforeError: [
-                error => {
-                    const abortedMsg = 'The server aborted the pending request';
-                    if(error.message == abortedMsg && error.code == undefined){
-                        error.code = 'ECONNRESET';
-                    }
-                    return error;
-                }
             ]
         }};
         // proxy
