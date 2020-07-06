@@ -1,6 +1,6 @@
 {
     "name": "hls-download",
-    "version": "2.4.1",
+    "version": "2.4.2",
     "description": "Download hls streams.",
     "keywords": [
         "hls",
@@ -21,7 +21,7 @@
     "license": "MIT",
     "main": "src/hls-download.js",
     "dependencies": {
-        "got": "^11.2.0",
+        "got": "^11.4.0",
         "sei-helper": "^3.3.0"
     }
 }
