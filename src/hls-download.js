@@ -130,7 +130,7 @@ class hlsDownload {
             let res = [], kerrcnt = 0, errcnt = 0;
             for (let px = offset; px < dlOffset && px < segments.length; px++){
                 let curp = segments[px];
-                if(curp.key.uri && !klnk.includes(curp.key.uri) && !this.data.keys[curp.key.uri]){
+                if(curp.key && !klnk.includes(curp.key.uri) && !this.data.keys[curp.key.uri]){
                     klnk.push(curp.key.uri);
                     krq.set(px, this.downloadKey(curp.key, px, proxy, this.data.offset));
                 }
