@@ -126,29 +126,15 @@ class hlsDownload {
             let offset = p * this.data.threads;
             let dlOffset = offset + this.data.threads;
             // map download threads
-            let klnk = [], krq = new Map(), prq = new Map();
+            let krq = new Map(), prq = new Map();
             let res = [], kerrcnt = 0, errcnt = 0;
             for (let px = offset; px < dlOffset && px < segments.length; px++){
                 let curp = segments[px];
-                if(curp.key && !klnk.includes(curp.key.uri) && !this.data.keys[curp.key.uri]){
-                    klnk.push(curp.key.uri);
-                    krq.set(px, this.downloadKey(curp.key, px, proxy, this.data.offset));
+                if(curp.key && !krq.has(curp.key.uri) && !this.data.keys[curp.key.uri]){
+                    krq.set(curp.key.uri, this.downloadKey(curp.key, px, proxy, this.data.offset));
                 }
             }
-            if(krq.size > 0){
-                for (let i = krq.size; i--;) {
-                    try {
-                        let kr = await Promise.race(krq.values());
-                        krq.delete(kr.p);
-                    }
-                    catch (error) {
-                        krq.delete(error.p);
-                        console.log('[ERROR] Key for part %s download error:\n\t%s',
-                            error.p + 1 + this.data.offset, error.message);
-                        errcnt++;
-                    }
-                }
-            }
+            await Promise.all(krq.values());
             for (let px = offset; px < dlOffset && px < segments.length; px++){
                 let curp = segments[px];
                 prq.set(px, this.downloadPart(curp, px, proxy, this.data.offset));
