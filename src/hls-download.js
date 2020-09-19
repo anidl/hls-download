@@ -146,9 +146,9 @@ class hlsDownload {
                     res[r.p - offset] = r.dec;
                 }
                 catch (error) {
-                    prq.delete(error.p);
                     console.log('[ERROR] Part %s download error:\n\t%s',
                         error.p + 1 + this.data.offset, error.message);
+                    prq.delete(error.p);
                     errcnt++;
                 }
             }
@@ -181,7 +181,7 @@ class hlsDownload {
             if (seg.key != undefined) {
                 decipher = await this.getKey(seg.key, p, proxy, segOffset);
             }
-            part = await extFn.getData(p, sURI, this.data.headers, segOffset, proxy, this.data.retries, [
+            part = await extFn.getData(p, sURI, this.data.headers, segOffset, proxy, false, this.data.retries, [
                 (res, retryWithMergedOptions) => {
                     if(this.data.checkPartLength && res.headers['content-length']){
                         if(!res.body || res.body.length != res.headers['content-length']){
@@ -213,7 +213,7 @@ class hlsDownload {
         const p = segIndex == 'init' ? 0 : segIndex;
         if (!this.data.keys[kURI]) {
             try {
-                const rkey = await extFn.getData(p, kURI, this.data.headers, segOffset, proxy, this.data.retries, [
+                const rkey = await extFn.getData(p, kURI, this.data.headers, segOffset, proxy, true, this.data.retries, [
                     (res, retryWithMergedOptions) => {
                         if (!res || !res.body) {
                             // 'Key get error'
@@ -280,7 +280,7 @@ const extFn = {
     initProxy: (proxy) => {
         return {};
     },
-    getData: (partIndex, uri, headers, segOffset, proxy, retry, afterResponse) => {
+    getData: (partIndex, uri, headers, segOffset, proxy, isKey, retry, afterResponse) => {
         // get file if uri is local
         if (uri.startsWith('file://')) {
             return {
@@ -301,8 +301,12 @@ const extFn = {
             afterResponse,
             beforeRetry: [
                 (options, error, retryCount) => {
-                    console.log('[WARN] Part %s: %d attempt to retrieve data', partIndex + 1 + segOffset, retryCount + 1);
-                    console.log(`\tERROR: ${error.message}`);
+                    if(error){
+                        const partType = isKey ? 'Key': 'Part';
+                        const partIndx = partIndex + 1 + segOffset;
+                        console.log('[WARN] %s %s: %d attempt to retrieve data', partType, partIndx, retryCount + 1);
+                        console.log(`\tERROR: ${error.message}`);
+                    }
                 }
             ]
         }};
