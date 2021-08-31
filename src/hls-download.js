@@ -285,7 +285,29 @@ const extFn = {
         console.log(`[INFO] ${partsDLRes} of ${partsTotalRes} parts downloaded [${percent}%] (${time})`);
     },
     initProxy: (proxy) => {
-        return {};
+      const host = proxy.host && proxy.host.match(':') 
+      ? proxy.host.split(':')[0] : ( proxy.host ? proxy.host : proxy.ip );
+      const port = proxy.host && proxy.host.match(':') 
+      ? proxy.host.split(':')[1] : ( proxy.port ? proxy.port : null );
+      const user = proxy.user || proxy['socks-login'];
+      const pass = proxy.pass || proxy['socks-pass'];
+      const auth = user && pass ? [user, pass].join(':') : null;
+      let ProxyAgent;
+      if(host && port || proxy.url){
+        ProxyAgent = require('proxy-agent');
+      }
+      if(host && port){
+        return new ProxyAgent(url.format({
+          protocol: proxy.type,
+          slashes: true,
+          auth: auth,
+          hostname: host,
+          port: port,
+        }));
+      }
+      else if(proxy.url){
+        return new ProxyAgent(proxy.url);
+      }
     },
     getData: (partIndex, uri, headers, segOffset, proxy, isKey, timeout, retry, afterResponse) => {
         // get file if uri is local
@@ -319,7 +341,10 @@ const extFn = {
         }};
         // proxy
         if (proxy) {
-            // options.agent = proxy;
+            options.agent = {
+                http: proxy,
+                https: proxy,
+            };
         }
         options.timeout = timeout;
         // do request
