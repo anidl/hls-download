@@ -36,6 +36,7 @@ class hlsDownload {
         this.data.proxy       = options.proxy || false;
         this.data.skipInit    = options.skipInit || false;
         this.data.keys        = {};
+        this.data.timeout     = parseInt(options.timeout) || 60 * 1000 
         // extra globals
         this.data.checkPartLength = true;
         this.data.isResume = this.data.offset > 0 ? true : ( options.typeStream || options.isResume );
@@ -74,13 +75,16 @@ class hlsDownload {
         // ask before rewrite file
         if (fs.existsSync(`${fn}`) && !this.data.isResume) {
             let rwts = ( this.data.forceRw ? 'y' : false ) 
-                || await shlp.question(`[Q] File «${fn}» already exists! Rewrite? (y/N)`);
+                || await shlp.question(`[Q] File «${fn}» already exists! Rewrite? ([Y]es/[N]o/[C]ontinue)`);
             rwts = rwts || 'N';
-            if (!['Y', 'y'].includes(rwts[0])) {
-                return { ok: true, parts: this.data.parts };
-            }
-            console.log(`[INFO] Deleting «${fn}»...`);
-            fs.unlinkSync(fn);
+            if (['Y', 'y'].includes(rwts[0])) {
+                console.log(`[INFO] Deleting «${fn}»...`);
+                fs.unlinkSync(fn);
+            } else if (['C', 'c'].includes(rwts[0])) {
+                return { ok: true, parts: 0 }
+            } else {
+                return { ok: false, parts: 0 }
+            }         
         }
         // show output filename
         if (fs.existsSync(fn) && this.data.isResume) {
@@ -156,7 +160,6 @@ class hlsDownload {
             if (errcnt > 0) {
                 console.log(`[ERROR] ${errcnt} parts not downloaded`);
                 return { ok: false, parts: this.data.parts };
-                break;
             }
             // log downloaded
             let totalSeg = segments.length;
@@ -181,7 +184,12 @@ class hlsDownload {
             if (seg.key != undefined) {
                 decipher = await this.getKey(seg.key, p, proxy, segOffset);
             }
-            part = await extFn.getData(p, sURI, this.data.headers, segOffset, proxy, false, this.data.retries, [
+            part = await extFn.getData(p, sURI, {
+                ...this.data.headers,
+                ...(seg.byterange ? {
+                    Range: `bytes=${seg.byterange.offset}-${seg.byterange.offset+seg.byterange.length-1}`
+                } : {})
+            }, segOffset, proxy, false, this.data.timeout, this.data.retries, [
                 (res, retryWithMergedOptions) => {
                     if(this.data.checkPartLength && res.headers['content-length']){
                         if(!res.body || res.body.length != res.headers['content-length']){
@@ -213,7 +221,7 @@ class hlsDownload {
         const p = segIndex == 'init' ? 0 : segIndex;
         if (!this.data.keys[kURI]) {
             try {
-                const rkey = await extFn.getData(p, kURI, this.data.headers, segOffset, proxy, true, this.data.retries, [
+                const rkey = await extFn.getData(p, kURI, this.data.headers, segOffset, proxy, true, this.data.timeout, this.data.retries, [
                     (res, retryWithMergedOptions) => {
                         if (!res || !res.body) {
                             // 'Key get error'
@@ -226,7 +234,6 @@ class hlsDownload {
                         return res;
                     }
                 ]);
-                this.data.keys[kURI] = rkey.body;
                 return rkey;
             }
             catch (error) {
@@ -278,9 +285,31 @@ const extFn = {
         console.log(`[INFO] ${partsDLRes} of ${partsTotalRes} parts downloaded [${percent}%] (${time})`);
     },
     initProxy: (proxy) => {
-        return {};
+      const host = proxy.host && proxy.host.match(':') 
+      ? proxy.host.split(':')[0] : ( proxy.host ? proxy.host : proxy.ip );
+      const port = proxy.host && proxy.host.match(':') 
+      ? proxy.host.split(':')[1] : ( proxy.port ? proxy.port : null );
+      const user = proxy.user || proxy['socks-login'];
+      const pass = proxy.pass || proxy['socks-pass'];
+      const auth = user && pass ? [user, pass].join(':') : null;
+      let ProxyAgent;
+      if(host && port || proxy.url){
+        ProxyAgent = require('proxy-agent');
+      }
+      if(host && port){
+        return new ProxyAgent(url.format({
+          protocol: proxy.type,
+          slashes: true,
+          auth: auth,
+          hostname: host,
+          port: port,
+        }));
+      }
+      else if(proxy.url){
+        return new ProxyAgent(proxy.url);
+      }
     },
-    getData: (partIndex, uri, headers, segOffset, proxy, isKey, retry, afterResponse) => {
+    getData: (partIndex, uri, headers, segOffset, proxy, isKey, timeout, retry, afterResponse) => {
         // get file if uri is local
         if (uri.startsWith('file://')) {
             return {
@@ -312,10 +341,12 @@ const extFn = {
         }};
         // proxy
         if (proxy) {
-            // options.agent = proxy;
+            options.agent = {
+                http: proxy,
+                https: proxy,
+            };
         }
-        // limit timeout to 1 min
-        options.timeout = 60000;
+        options.timeout = timeout;
         // do request
         return got(uri, options);
     }
