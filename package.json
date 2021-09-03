@@ -10,13 +10,13 @@
         "utility"
     ],
     "author": "Seiya Dev.",
-    "homepage": "https://github.com/seiya-npm/hls-download#readme",
+    "homepage": "https://github.com/anidl/hls-download#readme",
     "repository": {
         "type": "git",
-        "url": "https://github.com/seiya-npm/hls-download.git"
+        "url": "https://github.com/anidl/hls-download.git"
     },
     "bugs": {
-        "url": "https://github.com/seiya-npm/hls-download/issues"
+        "url": "https://github.com/anidl/hls-download/issues"
     },
     "license": "MIT",
     "main": "src/hls-download.js",

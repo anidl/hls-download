@@ -1,7 +1,7 @@
 # hls-download
 [![npm](https://img.shields.io/npm/v/hls-download.svg?style=flat-square)](https://npmjs.com/hls-download)
 [![npm downloads](https://img.shields.io/npm/dm/hls-download.svg?style=flat-square)](https://npmjs.com/hls-download)
-[![dependencies status](https://david-dm.org/seiya-npm/hls-download/status.svg?style=flat-square)](https://david-dm.org/seiya-npm/hls-download)
+[![dependencies status](https://david-dm.org/anidl/hls-download/status.svg?style=flat-square)](https://david-dm.org/anidl/hls-download)
 
 ## Install
 ```
