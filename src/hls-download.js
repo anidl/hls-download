@@ -110,6 +110,10 @@ class hlsDownload {
             try{
                 const initDl = await this.downloadPart(initSeg, 'init', proxy, 0);
                 fs.writeFileSync(fn, initDl.dec, { flag: 'a' });
+                fs.writeFileSync(`${fn}.resume`, JSON.stringify({
+                    completed: 0,
+                    total: this.data.m3u8json.segments.length
+                }));
                 console.log('[INFO] Init part downloaded.');
             }
             catch(e){
