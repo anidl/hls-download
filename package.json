@@ -1,6 +1,6 @@
 {
     "name": "hls-download",
-    "version": "2.6.1",
+    "version": "2.6.2",
     "description": "Download hls streams.",
     "keywords": [
         "hls",
@@ -24,5 +24,9 @@
         "got": "^11.7.0",
         "proxy-agent": "^5.0.0",
         "sei-helper": "^3.3.0"
+    },
+    "scripts": {
+        "eslint": "eslint *.js src",
+        "eslint-fix": "eslint *.js src --fix"
     }
 }

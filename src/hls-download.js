@@ -36,7 +36,7 @@ class hlsDownload {
         this.data.proxy       = options.proxy || false;
         this.data.skipInit    = options.skipInit || false;
         this.data.keys        = {};
-        this.data.timeout     = parseInt(options.timeout) || 60 * 1000 
+        this.data.timeout     = parseInt(options.timeout) || 60 * 1000; 
         // extra globals
         this.data.checkPartLength = true;
         this.data.isResume = this.data.offset > 0 ? true : ( options.typeStream || options.isResume );
@@ -75,16 +75,18 @@ class hlsDownload {
         // ask before rewrite file
         if (fs.existsSync(`${fn}`) && !this.data.isResume) {
             let rwts = ( this.data.forceRw ? 'y' : false ) 
-                || await shlp.question(`[Q] File «${fn}» already exists! Rewrite? ([Y]es/[N]o/[C]ontinue)`);
+                || await shlp.question(`[Q] File «${fn}» already exists! Rewrite? ([y]es/[N]o/[c]ontinue)`);
             rwts = rwts || 'N';
             if (['Y', 'y'].includes(rwts[0])) {
                 console.log(`[INFO] Deleting «${fn}»...`);
                 fs.unlinkSync(fn);
-            } else if (['C', 'c'].includes(rwts[0])) {
-                return { ok: true, parts: 0 }
-            } else {
-                return { ok: false, parts: 0 }
-            }         
+            }
+            else if (['C', 'c'].includes(rwts[0])) {
+                return { ok: true, parts: this.data.parts };
+            }
+            else {
+                return { ok: false, parts: this.data.parts };
+            }
         }
         // show output filename
         if (fs.existsSync(fn) && this.data.isResume) {
@@ -100,7 +102,7 @@ class hlsDownload {
         let segments = this.data.m3u8json.segments;
         // download init part
         if (segments[0].map && this.data.offset === 0 && !this.data.skipInit) {
-            console.log(`[INFO] Download and save init part...`);
+            console.log('[INFO] Download and save init part...');
             const initSeg = segments[0].map;
             if(segments[0].key){
                 initSeg.key = segments[0].key;
@@ -108,7 +110,7 @@ class hlsDownload {
             try{
                 const initDl = await this.downloadPart(initSeg, 'init', proxy, 0);
                 fs.writeFileSync(fn, initDl.dec, { flag: 'a' });
-                console.log(`[INFO] Init part downloaded.`);
+                console.log('[INFO] Init part downloaded.');
             }
             catch(e){
                 console.log(`[ERROR] Part init download error:\n\t${e.message}`);
@@ -131,7 +133,7 @@ class hlsDownload {
             let dlOffset = offset + this.data.threads;
             // map download threads
             let krq = new Map(), prq = new Map();
-            let res = [], kerrcnt = 0, errcnt = 0;
+            let res = [], errcnt = 0;
             for (let px = offset; px < dlOffset && px < segments.length; px++){
                 let curp = segments[px];
                 if(curp.key && !krq.has(curp.key.uri) && !this.data.keys[curp.key.uri]){
@@ -285,29 +287,29 @@ const extFn = {
         console.log(`[INFO] ${partsDLRes} of ${partsTotalRes} parts downloaded [${percent}%] (${time})`);
     },
     initProxy: (proxy) => {
-      const host = proxy.host && proxy.host.match(':') 
-      ? proxy.host.split(':')[0] : ( proxy.host ? proxy.host : proxy.ip );
-      const port = proxy.host && proxy.host.match(':') 
-      ? proxy.host.split(':')[1] : ( proxy.port ? proxy.port : null );
-      const user = proxy.user || proxy['socks-login'];
-      const pass = proxy.pass || proxy['socks-pass'];
-      const auth = user && pass ? [user, pass].join(':') : null;
-      let ProxyAgent;
-      if(host && port || proxy.url){
-        ProxyAgent = require('proxy-agent');
-      }
-      if(host && port){
-        return new ProxyAgent(url.format({
-          protocol: proxy.type,
-          slashes: true,
-          auth: auth,
-          hostname: host,
-          port: port,
-        }));
-      }
-      else if(proxy.url){
-        return new ProxyAgent(proxy.url);
-      }
+        const host = proxy.host && proxy.host.match(':') 
+            ? proxy.host.split(':')[0] : ( proxy.host ? proxy.host : proxy.ip );
+        const port = proxy.host && proxy.host.match(':') 
+            ? proxy.host.split(':')[1] : ( proxy.port ? proxy.port : null );
+        const user = proxy.user || proxy['socks-login'];
+        const pass = proxy.pass || proxy['socks-pass'];
+        const auth = user && pass ? [user, pass].join(':') : null;
+        let ProxyAgent;
+        if(host && port || proxy.url){
+            ProxyAgent = require('proxy-agent');
+        }
+        if(host && port){
+            return new ProxyAgent(url.format({
+                protocol: proxy.type,
+                slashes: true,
+                auth: auth,
+                hostname: host,
+                port: port,
+            }));
+        }
+        else if(proxy.url){
+            return new ProxyAgent(proxy.url);
+        }
     },
     getData: (partIndex, uri, headers, segOffset, proxy, isKey, timeout, retry, afterResponse) => {
         // get file if uri is local
