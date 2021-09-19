@@ -110,6 +110,10 @@ class hlsDownload {
             try{
                 const initDl = await this.downloadPart(initSeg, 'init', proxy, 0);
                 fs.writeFileSync(fn, initDl.dec, { flag: 'a' });
+                fs.writeFileSync(`${fn}.resume`, JSON.stringify({
+                    completed: 0,
+                    total: this.data.m3u8json.segments.length
+                }));
                 console.log('[INFO] Init part downloaded.');
             }
             catch(e){
@@ -175,8 +179,13 @@ class hlsDownload {
             for (let r of res) {
                 fs.writeFileSync(fn, r, { flag: 'a' });
             }
+            fs.writeFileSync(`${fn}.resume`, JSON.stringify({
+                completed: this.data.parts.completed,
+                total: totalSeg
+            }));
         }
         // return result
+        fs.unlinkSync(`${fn}.resume`);
         return { ok: true, parts: this.data.parts };
     }
     async downloadPart(seg, segIndex, proxy, segOffset){
