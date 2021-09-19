@@ -175,8 +175,13 @@ class hlsDownload {
             for (let r of res) {
                 fs.writeFileSync(fn, r, { flag: 'a' });
             }
+            fs.writeFileSync(`${fn}.resume`, JSON.stringify({
+                completed: this.data.parts.completed,
+                total: totalSeg
+            }));
         }
         // return result
+        fs.unlinkSync(`${fn}.resume`);
         return { ok: true, parts: this.data.parts };
     }
     async downloadPart(seg, segIndex, proxy, segOffset){
