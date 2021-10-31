@@ -144,7 +144,12 @@ class hlsDownload {
                     krq.set(curp.key.uri, this.downloadKey(curp.key, px, proxy, this.data.offset));
                 }
             }
-            await Promise.all(krq.values());
+            try {
+                await Promise.all(krq.values());
+            } catch (er) {
+                console.log(`[ERROR] Key ${er.p + 1} download error:\n\t${er.message}`)
+                return { ok: false, parts: this.data.parts };
+            }
             for (let px = offset; px < dlOffset && px < segments.length; px++){
                 let curp = segments[px];
                 prq.set(px, this.downloadPart(curp, px, proxy, this.data.offset));
