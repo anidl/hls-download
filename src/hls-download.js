@@ -7,6 +7,20 @@ const url = require('url');
 const shlp = require('sei-helper');
 const got = require('got');
 
+// The following function should fix an issue with downloading. For more information see https://github.com/sindresorhus/got/issues/1489
+const fixMiddleWare = (res) => {
+    const isResponseOk = response => {
+        const {statusCode} = response;
+        const limitStatusCode = response.request.options.followRedirect ? 299 : 399;
+    
+        return (statusCode >= 200 && statusCode <= limitStatusCode) || statusCode === 304;
+    };
+    if (isResponseOk(res)) {
+        res.request.destroy();
+    }
+    return res;
+}
+
 // hls class
 class hlsDownload {
     constructor(options){
@@ -343,7 +357,7 @@ const extFn = {
                     // console.log(' - Req:', options.url.pathname);
                 }
             ],
-            afterResponse,
+            afterResponse: [fixMiddleWare].concat(afterResponse || []),
             beforeRetry: [
                 (options, error, retryCount) => {
                     if(error){
