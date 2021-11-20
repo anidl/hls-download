@@ -1,6 +1,6 @@
 {
     "name": "hls-download",
-    "version": "2.6.5",
+    "version": "2.6.6",
     "description": "Download hls streams.",
     "keywords": [
         "hls",
@@ -21,12 +21,15 @@
     "license": "MIT",
     "main": "src/hls-download.js",
     "dependencies": {
-        "got": "^11.8.2",
+        "got": "^11.8.3",
         "proxy-agent": "^5.0.0",
         "sei-helper": "^3.3.0"
     },
     "scripts": {
         "eslint": "eslint *.js src",
         "eslint-fix": "eslint *.js src --fix"
+    },
+    "devDependencies": {
+        "m3u8-parsed": "^1.3.0"
     }
 }

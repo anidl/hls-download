@@ -55,6 +55,7 @@ class hlsDownload {
         this.data.checkPartLength = true;
         this.data.isResume = this.data.offset > 0 ? true : ( options.typeStream || options.isResume );
         this.data.headers = options.headers;
+        this.bytesDownloaded = 0;
     }
     async download(){
         // set output
@@ -192,7 +193,8 @@ class hlsDownload {
             this.data.parts.completed = downloadedSeg + this.data.offset;
             extFn.logDownloadInfo(
                 this.data.dateStart, downloadedSeg, totalSeg,
-                this.data.parts.completed, this.data.parts.total
+                this.data.parts.completed, this.data.parts.total,
+                this.bytesDownloaded
             );
             // write downloaded
             for (let r of res) {
@@ -235,10 +237,12 @@ class hlsDownload {
                 console.log(`[WARN] Part ${segIndex+segOffset+1}: can't check parts size!`);
             }
             if (decipher == undefined) {
+                this.bytesDownloaded += part.body.byteLength;
                 return { dec: part.body, p };
             }
             dec = decipher.update(part.body);
             dec = Buffer.concat([dec, decipher.final()]);
+            this.bytesDownloaded += dec.byteLength;
         }
         catch (error) {
             error.p = p;
@@ -306,13 +310,14 @@ const extFn = {
         }
         return baseurl + uri;
     },
-    logDownloadInfo: (dateStart, partsDL, partsTotal, partsDLRes, partsTotalRes) => {
+    logDownloadInfo: (dateStart, partsDL, partsTotal, partsDLRes, partsTotalRes, downloadedBytes) => {
         const dateElapsed = Date.now() - dateStart;
         const percentFxd = (partsDL / partsTotal * 100).toFixed();
         const percent = percentFxd < 100 ? percentFxd : (partsTotal == partsDL ? 100 : 99);
         const revParts = parseInt(dateElapsed * (partsTotal / partsDL - 1));
         const time = shlp.formatTime((revParts / 1000).toFixed());
-        console.log(`[INFO] ${partsDLRes} of ${partsTotalRes} parts downloaded [${percent}%] (${time})`);
+        const downloadSpeed = downloadedBytes / (dateElapsed / 1000); //Bytes per second
+        console.log(`[INFO] ${partsDLRes} of ${partsTotalRes} parts downloaded [${percent}%] (${time} | ${(downloadSpeed / 1000000).toPrecision(2)}Mb/s)`);
     },
     initProxy: (proxy) => {
         const host = proxy.host && proxy.host.match(':') 
