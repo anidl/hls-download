@@ -56,6 +56,7 @@ class hlsDownload {
         this.data.isResume = this.data.offset > 0 ? true : ( options.typeStream || options.isResume );
         this.data.headers = options.headers;
         this.bytesDownloaded = 0;
+        this.waitTime = options.fsRetryTime || 1000 * 5; 
     }
     async download(){
         // set output
@@ -187,6 +188,26 @@ class hlsDownload {
                 console.log(`[ERROR] ${errcnt} parts not downloaded`);
                 return { ok: false, parts: this.data.parts };
             }
+            // write downloaded
+            for (let r of res) {
+                let error = 0;
+                while (error < 3) {
+                    try {
+                        fs.writeFileSync(fn, r, { flag: 'a' });
+                        break;
+                    } catch (err) {
+                        console.error(err);
+                        console.log(`[ERROR] Unable to write to file '${fn}' (Attempt ${error+1}/3)`);
+                        console.log(`[INFO] Waiting ${Math.round(this.waitTime / 1000)}s before retrying`)
+                        await new Promise((resolve) => setTimeout(() => resolve(), this.waitTime));
+                    }
+                    error++;
+                }
+                if (error === 3) {
+                    console.log(`[ERROR] Unable to write content to '${fn}'.`);
+                    return { ok: false, parts: this.data.parts };
+                }
+            }
             // log downloaded
             let totalSeg = segments.length;
             let downloadedSeg = dlOffset < totalSeg ? dlOffset : totalSeg;
@@ -196,10 +217,6 @@ class hlsDownload {
                 this.data.parts.completed, this.data.parts.total,
                 this.bytesDownloaded
             );
-            // write downloaded
-            for (let r of res) {
-                fs.writeFileSync(fn, r, { flag: 'a' });
-            }
             fs.writeFileSync(`${fn}.resume`, JSON.stringify({
                 completed: this.data.parts.completed,
                 total: totalSeg
