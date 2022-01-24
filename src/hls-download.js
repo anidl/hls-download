@@ -19,7 +19,7 @@ const fixMiddleWare = (res) => {
         res.request.destroy();
     }
     return res;
-}
+};
 
 // hls class
 class hlsDownload {
@@ -56,7 +56,11 @@ class hlsDownload {
         this.data.isResume = this.data.offset > 0 ? true : ( options.typeStream || options.isResume );
         this.data.headers = options.headers;
         this.bytesDownloaded = 0;
-        this.waitTime = options.fsRetryTime || 1000 * 5; 
+        this.waitTime = options.fsRetryTime || 1000 * 5;
+        this.callback = options.callback;
+        if (this.callback && typeof this.callback !== 'function') {
+            throw new Error('Callback has to be function or undefined');
+        }
     }
     async download(){
         // set output
@@ -163,7 +167,7 @@ class hlsDownload {
             try {
                 await Promise.all(krq.values());
             } catch (er) {
-                console.log(`[ERROR] Key ${er.p + 1} download error:\n\t${er.message}`)
+                console.log(`[ERROR] Key ${er.p + 1} download error:\n\t${er.message}`);
                 return { ok: false, parts: this.data.parts };
             }
             for (let px = offset; px < dlOffset && px < segments.length; px++){
@@ -198,7 +202,7 @@ class hlsDownload {
                     } catch (err) {
                         console.error(err);
                         console.log(`[ERROR] Unable to write to file '${fn}' (Attempt ${error+1}/3)`);
-                        console.log(`[INFO] Waiting ${Math.round(this.waitTime / 1000)}s before retrying`)
+                        console.log(`[INFO] Waiting ${Math.round(this.waitTime / 1000)}s before retrying`);
                         await new Promise((resolve) => setTimeout(() => resolve(), this.waitTime));
                     }
                     error++;
@@ -212,15 +216,17 @@ class hlsDownload {
             let totalSeg = segments.length;
             let downloadedSeg = dlOffset < totalSeg ? dlOffset : totalSeg;
             this.data.parts.completed = downloadedSeg + this.data.offset;
-            extFn.logDownloadInfo(
+            let data = extFn.getDownloadInfo(
                 this.data.dateStart, downloadedSeg, totalSeg,
-                this.data.parts.completed, this.data.parts.total,
                 this.bytesDownloaded
             );
             fs.writeFileSync(`${fn}.resume`, JSON.stringify({
                 completed: this.data.parts.completed,
                 total: totalSeg
             }));
+            console.log(`[INFO] ${downloadedSeg} of ${totalSeg} parts downloaded [${data.percent}%] (${shlp.formatTime((data.time / 1000).toFixed())} | ${(data.downloadSpeed / 1000000).toPrecision(2)}Mb/s)`);
+            if (this.callback)
+                this.callback({ total: this.data.parts.total, cur: this.data.parts.completed, bytes: this.bytesDownloaded, percent: data.percent, time: data.time, downloadSpeed: data.downloadSpeed });
         }
         // return result
         fs.unlinkSync(`${fn}.resume`);
@@ -327,14 +333,13 @@ const extFn = {
         }
         return baseurl + uri;
     },
-    logDownloadInfo: (dateStart, partsDL, partsTotal, partsDLRes, partsTotalRes, downloadedBytes) => {
+    getDownloadInfo: (dateStart, partsDL, partsTotal, downloadedBytes) => {
         const dateElapsed = Date.now() - dateStart;
         const percentFxd = (partsDL / partsTotal * 100).toFixed();
         const percent = percentFxd < 100 ? percentFxd : (partsTotal == partsDL ? 100 : 99);
         const revParts = parseInt(dateElapsed * (partsTotal / partsDL - 1));
-        const time = shlp.formatTime((revParts / 1000).toFixed());
         const downloadSpeed = downloadedBytes / (dateElapsed / 1000); //Bytes per second
-        console.log(`[INFO] ${partsDLRes} of ${partsTotalRes} parts downloaded [${percent}%] (${time} | ${(downloadSpeed / 1000000).toPrecision(2)}Mb/s)`);
+        return { percent, time: revParts, downloadSpeed };
     },
     initProxy: (proxy) => {
         const host = proxy.host && proxy.host.match(':') 
