@@ -61,6 +61,7 @@ class hlsDownload {
         if (this.callback && typeof this.callback !== 'function') {
             throw new Error('Callback has to be function or undefined');
         }
+        this.override = options.override;
     }
     async download(){
         // set output
@@ -94,8 +95,7 @@ class hlsDownload {
         }
         // ask before rewrite file
         if (fs.existsSync(`${fn}`) && !this.data.isResume) {
-            let rwts = ( this.data.forceRw ? 'y' : false ) 
-                || await shlp.question(`[Q] File «${fn}» already exists! Rewrite? ([y]es/[N]o/[c]ontinue)`);
+            let rwts = this.override ?? await shlp.question(`[Q] File «${fn}» already exists! Rewrite? ([y]es/[N]o/[c]ontinue)`);
             rwts = rwts || 'N';
             if (['Y', 'y'].includes(rwts[0])) {
                 console.log(`[INFO] Deleting «${fn}»...`);
