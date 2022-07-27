@@ -213,7 +213,7 @@ class hlsDownload {
                 }
             }
             // log downloaded
-            let totalSeg = segments.length;
+            let totalSeg = segments.length + this.data.offset; // Add the sliced lenght back so the resume data will be correct even if an resumed download fails
             let downloadedSeg = dlOffset < totalSeg ? dlOffset : totalSeg;
             this.data.parts.completed = downloadedSeg + this.data.offset;
             let data = extFn.getDownloadInfo(
