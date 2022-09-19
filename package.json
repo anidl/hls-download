@@ -21,7 +21,7 @@
     "license": "MIT",
     "main": "src/hls-download.js",
     "dependencies": {
-        "got": "^11.8.3",
+        "got": "^12.5.0",
         "proxy-agent": "^5.0.0",
         "sei-helper": "^3.3.0"
     },
