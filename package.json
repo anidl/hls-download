@@ -22,7 +22,7 @@
     "main": "src/hls-download.js",
     "dependencies": {
         "got": "^11.8.3",
-        "proxy-agent": "^5.0.0",
+        "proxy-agent": "^6.1.1",
         "sei-helper": "^3.3.0"
     },
     "scripts": {
